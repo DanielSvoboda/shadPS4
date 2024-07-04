@@ -196,7 +196,15 @@ Id EmitLoadBufferU32(EmitContext& ctx, IR::Inst* inst, u32 handle, Id address) {
 }
 
 Id EmitLoadBufferF32x2(EmitContext& ctx, IR::Inst* inst, u32 handle, Id address) {
-    UNREACHABLE();
+    const auto info = inst->Flags<IR::BufferInstInfo>();
+    const auto& buffer = ctx.buffers[handle];
+    boost::container::static_vector<Id, 2> ids;
+    for (u32 i = 0; i < 2; i++) {
+        const Id index{ctx.OpIAdd(ctx.U32[1], address, ctx.ConstU32(i))};
+        const Id ptr{ctx.OpAccessChain(buffer.pointer_type, buffer.id, ctx.u32_zero_value, index)};
+        ids.push_back(ctx.OpLoad(buffer.data_types->Get(1), ptr));
+    }
+    return ctx.OpCompositeConstruct(buffer.data_types->Get(2), ids);
 }
 
 Id EmitLoadBufferF32x3(EmitContext& ctx, IR::Inst* inst, u32 handle, Id address) {
