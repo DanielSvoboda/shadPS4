@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2024 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <QMessageBox>
 #include <zlib-ng.h>
 #include "common/io_file.h"
 #include "core/file_format/pkg.h"
@@ -27,6 +28,72 @@ static void DecompressPFSC(std::span<const char> compressed_data,
     if (zng_inflateEnd(&decompressStream) != Z_OK) {
         // std::cerr << "Error ending zlib inflate" << std::endl;
     }
+}
+
+bool mergePKGs(const std::filesystem::path& filepath) {
+
+    // Extract base name without part number and extension
+    std::string base_name = filepath.stem().string();
+    std::string base_dir = filepath.parent_path().string();
+
+    // Determine the prefix of the file
+    size_t last_underscore = base_name.find_last_of('_');
+    if (last_underscore == std::string::npos) {
+        // std::cerr << "[error] invalid file name format: " << filepath << std::endl;
+        return false;
+    }
+
+    std::string prefix = base_name.substr(0, last_underscore + 1);
+    int start_part = std::stoi(base_name.substr(last_underscore + 1));
+
+    // Open the final merged file
+    std::string merged_file_name = prefix + "merged.pkg";
+    std::string full_merged_file = base_dir + "\\" + merged_file_name;
+    if (std::filesystem::exists(full_merged_file)) {
+        std::filesystem::remove(full_merged_file);
+    }
+
+    FILE* merged = fopen(full_merged_file.c_str(), "wb");
+    if (!merged) {
+        // std::cerr << "[error] failed to create merged file: " << full_merged_file << std::endl;
+        return false;
+    }
+
+    // Merge parts
+    int part_number = start_part;
+    while (true) {
+        std::filesystem::path part_file =
+            base_dir + "\\" + prefix + std::to_string(part_number) + ".pkg";
+
+        std::string part_file_str = part_file.string(); // .string() returns a std::string
+
+        if (!std::filesystem::exists(part_file)) {
+            break;
+        }
+
+        FILE* part = fopen(part_file_str.c_str(), "rb");
+        if (!part) {
+            // std::cerr << "[error] failed to open part file: " << part_file << std::endl;
+            fclose(merged);
+            return false;
+        }
+
+        fseek(part, 0, SEEK_END);
+        long file_size = ftell(part);
+        fseek(part, 0, SEEK_SET);
+
+        char buffer[1024 * 512];
+        size_t read_data;
+        while ((read_data = fread(buffer, 1, sizeof(buffer), part)) > 0) {
+            fwrite(buffer, 1, read_data, merged);
+        }
+        fclose(part);
+
+        part_number++;
+    }
+
+    fclose(merged);
+    return true;
 }
 
 u32 GetPFSCOffset(std::span<const u8> pfs_image) {
@@ -97,20 +164,61 @@ bool PKG::Extract(const std::filesystem::path& filepath, const std::filesystem::
     pkgpath = filepath;
     Common::FS::IOFile file(filepath, Common::FS::FileAccessMode::Read);
     if (!file.IsOpen()) {
+        failreason = "Failed to open the PKG file.";
         return false;
     }
     pkgSize = file.GetSize();
     file.ReadRaw<u8>(&pkgheader, sizeof(PKGHeader));
 
-    if (pkgheader.magic != 0x7F434E54)
-        return false;
-
-    if (pkgheader.pkg_size > pkgSize) {
-        failreason = "PKG file size is different";
+    if (pkgheader.magic != 0x7F434E54) {
+        failreason = "PKG file is not valid, header is different.";
         return false;
     }
+
+    if (pkgheader.pkg_size > pkgSize) {
+        QMessageBox msgBox;
+        msgBox.setWindowTitle("PKG Update");
+        msgBox.setText(QString("There is an update that is divided into some files.\n"
+                               "They will be unified/merged, and installed.\n"
+                               "This may take a while depending on the total size."
+                               "Press 'OK' and please wait."));
+        msgBox.exec();
+
+        if (mergePKGs(filepath)) {
+            std::filesystem::path merged_file_path = filepath;
+            merged_file_path.replace_extension("");
+
+            // Remove the last two characters from the file name(_0)
+            std::string filename_str = merged_file_path.filename().string();
+            if (filename_str.length() > 2) {
+                filename_str = filename_str.substr(0, filename_str.length() - 2);
+                merged_file_path = merged_file_path.parent_path() / filename_str;
+            }
+            merged_file_path += "_merged.pkg";
+
+            // Verify that the merged file was created successfully
+            if (!std::filesystem::exists(merged_file_path)) {
+                std::stringstream ss;
+                ss << "Merged file does not exist: " << merged_file_path.string() << ".";
+                failreason = ss.str();
+                return false;
+            }
+
+            // Try opening the merged file
+            Common::FS::IOFile merged_file(merged_file_path, Common::FS::FileAccessMode::Read);
+            if (!merged_file.IsOpen()) {
+                failreason = "Failed to open the merged file.";
+                return false;
+            }
+            file = std::move(merged_file);
+        } else {
+            failreason = "Failed to merge PKG files.";
+            return false;
+        }
+    }
+
     if ((pkgheader.pkg_content_size + pkgheader.pkg_content_offset) > pkgheader.pkg_size) {
-        failreason = "Content size is bigger than pkg size";
+        failreason = "Content size is bigger than pkg size.";
         return false;
     }
     file.Seek(0);
@@ -260,7 +368,8 @@ bool PKG::Extract(const std::filesystem::path& filepath, const std::filesystem::
             DecompressPFSC(compressedData, decompressedData);
 
         if (i == 0) {
-            std::memcpy(&ndinode, decompressedData.data() + 0x30, 4); // number of folders and files
+            std::memcpy(&ndinode, decompressedData.data() + 0x30,
+                        4); // number of folders and files
         }
 
         int occupied_blocks =
