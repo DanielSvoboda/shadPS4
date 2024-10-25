@@ -382,7 +382,7 @@ jobs:
         path: Shadps4-qt.AppImage
 
   pre-release:
-    if: github.ref == 'refs/heads/main' && github.repository == 'shadps4-emu/shadPS4' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.repository == 'DanielSvoboda/shadPS4' && github.event_name == 'push'
     needs: [get-info, windows-sdl, windows-qt, macos-sdl, macos-qt, linux-sdl, linux-qt]
     runs-on: ubuntu-latest
     steps:
@@ -422,7 +422,46 @@ jobs:
         prerelease: true
         body: "Full Changelog: [${{ env.last_release_tag }}...${{ needs.get-info.outputs.shorthash }}](https://github.com/shadps4-emu/shadPS4/compare/${{ env.last_release_tag }}...${{ needs.get-info.outputs.shorthash }})"
         artifacts: ./artifacts/*.zip
-    
+
+    - name: Publish to additional repositories
+      env:
+        GITHUB_TOKEN: ${{ secrets.SHADPS4_TOKEN_REPO }}
+      run: |
+        ARTIFACTS_DIR=./artifacts
+        REPO_WINDOWS="DanielSvoboda/windows"
+        REPO_LINUX="DanielSvoboda/linux"
+        REPO_MAC="DanielSvoboda/mac"
+
+        for file in "$ARTIFACTS_DIR"/*.zip; do
+          filename=$(basename "$file")
+
+          if [[ "$filename" == *"win64"* ]]; then
+            REPO=$REPO_WINDOWS
+          elif [[ "$filename" == *"linux"* ]] || [[ "$filename" == *"ubundo64"* ]]; then
+            REPO=$REPO_LINUX
+          elif [[ "$filename" == *"macos"* ]]; then
+            REPO=$REPO_MAC
+          else
+            echo "No matching repository for $filename"
+            continue
+          fi
+
+          echo "Creating release in $REPO for $filename"
+          curl -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            -d '{
+              "tag_name": "Pre-release-shadPS4-${{ needs.get-info.outputs.date }}-${{ needs.get-info.outputs.shorthash }}",
+              "name": "Pre-release-shadPS4-${{ needs.get-info.outputs.date }}-${{ needs.get-info.outputs.shorthash }}",
+              "draft": false,
+              "prerelease": true,
+              "body": "Full Changelog: [${{ env.last_release_tag }}...${{ needs.get-info.outputs.shorthash }}](https://github.com/shadps4-emu/shadPS4/compare/${{ env.last_release_tag }}...${{ needs.get-info.outputs.shorthash }})"
+            }' "https://api.github.com/repos/$REPO/releases" | jq -r '.id' > release_id.txt
+
+          # Upload the artifact
+          upload_url="https://uploads.github.com/repos/$REPO/releases/$(cat release_id.txt)/assets?name=$filename"
+          curl -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/octet-stream" --data-binary @"$file" "$upload_url"
+        done
+        
     - name: Get current pre-release information
       env:
         GITHUB_TOKEN: ${{ secrets.SHADPS4_TOKEN_REPO }}
