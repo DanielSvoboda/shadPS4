@@ -797,6 +797,15 @@ void Translator::V_RCP_F64(const GcnInst& inst) {
 void Translator::V_RSQ_F32(const GcnInst& inst) {
     const IR::F32 src0{GetSrc<IR::F32>(inst.src[0])};
     SetDst(inst.dst[0], ir.FPRecipSqrt(src0));
+    IR::F32 result = ir.FPRecipSqrt(src0);
+    if (result == ir.Imm32(INFINITY) || result == ir.Imm32(-INFINITY)) {
+        result = ir.Imm32(FLT_MAX);
+    }
+
+    if (src0 == ir.Imm32(0.0f)) {
+        result = ir.Imm32(0.0f);
+    }
+    SetDst(inst.dst[0], result);
 }
 
 void Translator::V_SQRT_F32(const GcnInst& inst) {
@@ -1070,18 +1079,25 @@ void Translator::V_CUBEID_F32(const GcnInst& inst) {
     const auto z = GetSrc<IR::F32>(inst.src[2]);
 
     IR::F32 result;
-    if (profile.supports_native_cube_calc) {
-        result = ir.CubeFaceIndex(ir.CompositeConstruct(x, y, z));
-    } else {
-        const auto x_neg_cond{ir.FPLessThan(x, ir.Imm32(0.f))};
-        const auto y_neg_cond{ir.FPLessThan(y, ir.Imm32(0.f))};
-        const auto z_neg_cond{ir.FPLessThan(z, ir.Imm32(0.f))};
-        const IR::F32 x_face{ir.Select(x_neg_cond, ir.Imm32(1.f), ir.Imm32(0.f))};
-        const IR::F32 y_face{ir.Select(y_neg_cond, ir.Imm32(3.f), ir.Imm32(2.f))};
-        const IR::F32 z_face{ir.Select(z_neg_cond, ir.Imm32(5.f), ir.Imm32(4.f))};
+    const auto abs_x = ir.FPAbs(x);
+    const auto abs_y = ir.FPAbs(y);
+    const auto abs_z = ir.FPAbs(z);
 
-        result = SelectCubeResult(x, y, z, x_face, y_face, z_face);
-    }
+    const auto condition_z = ir.FPGreaterThanEqual(abs_z, ir.FPMax(abs_x, abs_y));
+    const auto condition_y = ir.FPGreaterThanEqual(abs_y, abs_x);
+
+    const IR::F32F64 face_z{ir.Select(
+        condition_z, ir.Select(ir.FPLessThan(z, ir.Imm32(0.f)), ir.Imm32(5.f), ir.Imm32(4.f)),
+        ir.Imm32(0.f))};
+    const IR::F32F64 face_y{ir.Select(
+        condition_y, ir.Select(ir.FPLessThan(y, ir.Imm32(0.f)), ir.Imm32(3.f), ir.Imm32(2.f)),
+        ir.Imm32(0.f))};
+    const IR::F32F64 face_x{
+        ir.Select(ir.FPLessThan(x, ir.Imm32(0.f)), ir.Imm32(1.f), ir.Imm32(0.f))};
+
+    // Corrigido: combinando os valores de forma correta
+    result = ir.FPAdd(ir.FPAdd(face_z, face_y), face_x);
+
     SetDst(inst.dst[0], result);
 }
 
@@ -1090,13 +1106,24 @@ void Translator::V_CUBESC_F32(const GcnInst& inst) {
     const auto y = GetSrc<IR::F32>(inst.src[1]);
     const auto z = GetSrc<IR::F32>(inst.src[2]);
 
-    const auto x_neg_cond{ir.FPLessThan(x, ir.Imm32(0.f))};
-    const auto z_neg_cond{ir.FPLessThan(z, ir.Imm32(0.f))};
-    const IR::F32 x_sc{ir.Select(x_neg_cond, z, ir.FPNeg(z))};
-    const IR::F32 y_sc{x};
+    const auto abs_x = ir.FPAbs(x);
+    const auto abs_y = ir.FPAbs(y);
+    const auto abs_z = ir.FPAbs(z);
+
+    const auto x_neg_cond = ir.FPLessThan(x, ir.Imm32(0.f));
+    const auto z_neg_cond = ir.FPLessThan(z, ir.Imm32(0.f));
+
+    const IR::F32 x_sc{ir.Select(
+        ir.FPGreaterThanEqual(abs_z, ir.FPMax(abs_x, abs_y)), ir.Select(z_neg_cond, ir.FPNeg(x), x),
+        ir.Select(ir.FPGreaterThanEqual(abs_y, abs_x), x, ir.Select(x_neg_cond, ir.FPNeg(z), z)))};
+
+    const IR::F32 y_sc = x;
     const IR::F32 z_sc{ir.Select(z_neg_cond, ir.FPNeg(x), x)};
 
-    const auto result{SelectCubeResult(x, y, z, x_sc, y_sc, z_sc)};
+    const IR::F32 result{ir.Select(
+        ir.FPGreaterThanEqual(abs_z, ir.FPMax(abs_x, abs_y)), ir.Select(z_neg_cond, ir.FPNeg(x), x),
+        ir.Select(ir.FPGreaterThanEqual(abs_y, abs_x), x, ir.Select(x_neg_cond, ir.FPNeg(z), z)))};
+
     SetDst(inst.dst[0], result);
 }
 
@@ -1106,7 +1133,7 @@ void Translator::V_CUBETC_F32(const GcnInst& inst) {
     const auto z = GetSrc<IR::F32>(inst.src[2]);
 
     const auto y_neg_cond{ir.FPLessThan(y, ir.Imm32(0.f))};
-    const IR::F32 x_z_tc{ir.FPNeg(y)};
+    const IR::F32 x_z_tc{ir.FPNeg(x)};
     const IR::F32 y_tc{ir.Select(y_neg_cond, ir.FPNeg(z), z)};
 
     const auto result{SelectCubeResult(x, y, z, x_z_tc, y_tc, x_z_tc)};
@@ -1119,11 +1146,23 @@ void Translator::V_CUBEMA_F32(const GcnInst& inst) {
     const auto z = GetSrc<IR::F32>(inst.src[2]);
 
     const auto two{ir.Imm32(2.f)};
-    const IR::F32 x_major_axis{ir.FPMul(x, two)};
-    const IR::F32 y_major_axis{ir.FPMul(y, two)};
-    const IR::F32 z_major_axis{ir.FPMul(z, two)};
 
-    const auto result{SelectCubeResult(x, y, z, x_major_axis, y_major_axis, z_major_axis)};
+    const auto abs_x = ir.FPAbs(x);
+    const auto abs_y = ir.FPAbs(y);
+    const auto abs_z = ir.FPAbs(z);
+
+    const auto max_abs = ir.FPMax(ir.FPMax(abs_x, abs_y), abs_z);
+
+    IR::F32 result;
+
+    if (max_abs == abs_x) {
+        result = ir.FPMul(x, two);
+    } else if (max_abs == abs_y) {
+        result = ir.FPMul(y, two);
+    } else {
+        result = ir.FPMul(z, two);
+    }
+
     SetDst(inst.dst[0], result);
 }
 
