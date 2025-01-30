@@ -98,6 +98,11 @@ PAddr MemoryManager::PoolExpand(PAddr search_start, PAddr search_end, size_t siz
 
 PAddr MemoryManager::Allocate(PAddr search_start, PAddr search_end, size_t size, u64 alignment,
                               int memory_type) {
+    if (size == 0) {
+        LOG_ERROR(Core, "Size cannot be zero");
+        return {}; // Handle error appropriately
+    }
+
     std::scoped_lock lk{mutex};
     alignment = alignment > 0 ? alignment : 16_KB;
 
@@ -131,6 +136,11 @@ PAddr MemoryManager::Allocate(PAddr search_start, PAddr search_end, size_t size,
 }
 
 void MemoryManager::Free(PAddr phys_addr, size_t size) {
+    if (size == 0) {
+        LOG_ERROR(Core, "Size cannot be zero");
+        return; // Handle error appropriately
+    }
+
     std::scoped_lock lk{mutex};
 
     auto dmem_area = CarveDmemArea(phys_addr, size);
@@ -682,6 +692,11 @@ MemoryManager::VMAHandle MemoryManager::CarveVMA(VAddr virtual_addr, size_t size
 }
 
 MemoryManager::DMemHandle MemoryManager::CarveDmemArea(PAddr addr, size_t size) {
+    if (size == 0) {
+        LOG_ERROR(Core, "Size cannot be zero");
+        // return {}; // handle error appropriately
+    }
+
     auto dmem_handle = FindDmemArea(addr);
     ASSERT_MSG(dmem_handle != dmem_map.end(), "Physical address not in dmem_map");
 
@@ -693,11 +708,11 @@ MemoryManager::DMemHandle MemoryManager::CarveDmemArea(PAddr addr, size_t size) 
     ASSERT_MSG(end_in_vma <= area.size, "Mapping cannot fit inside free region: size = {:#x}",
                size);
 
-    if (end_in_vma != area.size) {
+    if (end_in_vma != area.size && end_in_vma > 0) {
         // Split VMA at the end of the allocated region
         Split(dmem_handle, end_in_vma);
     }
-    if (start_in_area != 0) {
+    if (start_in_area != 0 && start_in_area > 0) {
         // Split VMA at the start of the allocated region
         dmem_handle = Split(dmem_handle, start_in_area);
     }
@@ -707,6 +722,8 @@ MemoryManager::DMemHandle MemoryManager::CarveDmemArea(PAddr addr, size_t size) 
 
 MemoryManager::VMAHandle MemoryManager::Split(VMAHandle vma_handle, size_t offset_in_vma) {
     auto& old_vma = vma_handle->second;
+    LOG_INFO(Core, "offset_in_vma: {}, old_vma.size: {}", offset_in_vma, old_vma.size);
+
     ASSERT(offset_in_vma < old_vma.size && offset_in_vma > 0);
 
     auto new_vma = old_vma;
@@ -722,6 +739,8 @@ MemoryManager::VMAHandle MemoryManager::Split(VMAHandle vma_handle, size_t offse
 
 MemoryManager::DMemHandle MemoryManager::Split(DMemHandle dmem_handle, size_t offset_in_area) {
     auto& old_area = dmem_handle->second;
+    LOG_INFO(Core, "offset_in_area: {}, old_area.size: {}", offset_in_area, old_area.size);
+
     ASSERT(offset_in_area < old_area.size && offset_in_area > 0);
 
     auto new_area = old_area;
