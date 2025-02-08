@@ -1473,7 +1473,7 @@
 		</message>
 		<message>
 			<source>Menus</source>
-			<translation>Meny</translation>
+			<translation>Menyene</translation>
 		</message>
 		<message>
 			<source>Ingame</source>
@@ -1524,7 +1524,7 @@
 		</message>
 		<message>
 			<source>Unknown</source>
-			<translation>Ukendt</translation>
+			<translation>Ukjent</translation>
 		</message>
 		<message>
 			<source>Nothing</source>
@@ -1532,7 +1532,7 @@
 		</message>
 		<message>
 			<source>Boots</source>
-			<translation>Støvler</translation>
+			<translation>Starter opp</translation>
 		</message>
 		<message>
 			<source>Menus</source>
@@ -1548,7 +1548,7 @@
 		</message>
 		<message>
 			<source>Unknown</source>
-			<translation>Ukendt</translation>
+			<translation>Ukjent</translation>
 		</message>
 	</context>
 </TS>
