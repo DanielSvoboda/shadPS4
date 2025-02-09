@@ -16,7 +16,7 @@ for FILE in $FILES; do
     echo "Updating translation for language: $FILENAME"
     lupdate $SRCDIRS $OPTS -locations none -source-language $FILENAME -ts "$OUTDIR/$FILENAME.ts"
     
-    if ! head -n 4 "$OUTDIR/$FILENAME.ts" | grep -q "SPDX-FileCopyrightText"; then
-        sed -i '4i\<!-- SPDX-FileCopyrightText: Copyright 2025 shadPS4 Emulator Project\n     SPDX-License-Identifier: GPL-2.0-or-later -->' "$OUTDIR/$FILENAME.ts"
+    if ! head -n 1 "$OUTDIR/$FILENAME.ts" | grep -q "SPDX-FileCopyrightText"; then
+        sed -i '1i\<!-- SPDX-FileCopyrightText: Copyright 2025 shadPS4 Emulator Project\n     SPDX-License-Identifier: GPL-2.0-or-later -->' "$OUTDIR/$FILENAME.ts"
     fi
 done
