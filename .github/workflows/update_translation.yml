@@ -4,7 +4,10 @@ on:
   schedule:
     - cron: "0 0 * * *" # Every day at 12am UTC.
   workflow_dispatch: # As well as manually.
-
+  push:
+    paths:
+      - 'src/qt_gui/translations/**'
+      
 jobs:
   update:
     if: github.repository == 'DanielSvoboda/shadPS4'
