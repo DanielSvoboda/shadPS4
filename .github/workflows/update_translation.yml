@@ -4,9 +4,6 @@ on:
   schedule:
     - cron: "0 0 * * *" # Every day at 12am UTC.
   workflow_dispatch: # As well as manually.
-  push:
-    paths:
-      - 'src/qt_gui/translations/**'
       
 jobs:
   update:
@@ -30,5 +27,3 @@ jobs:
           committer: "shadPS4 Bot <Shadps4Boot@users.noreply.github.com>"
           author: "shadPS4 Bot <Shadps4Boot@users.noreply.github.com>"
           body: "Daily update of translation sources."
-          branch: update-translation
-          delete-branch: true
