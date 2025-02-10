@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: Copyright 2025 shadPS4 Emulator Project
+     SPDX-License-Identifier: GPL-2.0-or-later -->
 <!DOCTYPE TS>
 <TS version="2.1" language="sv_SE">
-	<!-- SPDX-FileCopyrightText: Copyright 2025 shadPS4 Emulator Project
-         SPDX-License-Identifier: GPL-2.0-or-later -->
 <context>
     <name>AboutDialog</name>
     <message>
@@ -387,10 +387,6 @@
         <translation>Kunde inte uppdatera kompatibilitetsdata! Försök igen senare.</translation>
     </message>
     <message>
-        <source>Unable to open compatibility.json for writing.</source>
-        <translation type="vanished">Kunde inte öppna compatibility.json för skrivning.</translation>
-    </message>
-    <message>
         <source>Unknown</source>
         <translation>Okänt</translation>
     </message>
@@ -672,10 +668,6 @@
     <message>
         <source>Game can be completed with playable performance and no major glitches</source>
         <translation>Spelet kan spelas klart med spelbar prestanda och utan större problem</translation>
-    </message>
-    <message>
-        <source>Click to go to issue</source>
-        <translation type="vanished">Klicka för att gå till problem</translation>
     </message>
     <message>
         <source>Last updated</source>
@@ -1256,10 +1248,6 @@
         <translation>Visa startskärm</translation>
     </message>
     <message>
-        <source>ps4proCheckBox</source>
-        <translation type="vanished">Är PS4 Pro:\nGör att emulatorn agerar som en PS4 PRO, vilket kan aktivera speciella funktioner i spel som har stöd för det</translation>
-    </message>
-    <message>
         <source>Enable Discord Rich Presence</source>
         <translation>Aktivera Discord Rich Presence</translation>
     </message>
@@ -1322,10 +1310,6 @@
     <message>
         <source>Graphics</source>
         <translation>Grafik</translation>
-    </message>
-    <message>
-        <source>Gui</source>
-        <translation type="vanished">Gränssnitt</translation>
     </message>
     <message>
         <source>User</source>
@@ -1738,6 +1722,14 @@
     <message>
         <source>GUIBackgroundImageGroupBox</source>
         <translation>Bakgrundsbild:\nKontrollerar opaciteten för spelets bakgrundsbild</translation>
+    </message>
+    <message>
+        <source>Enable HDR</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>enableHDRCheckBox</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
