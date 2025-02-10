@@ -1,0 +1,4 @@
+files:
+  - source: /src/qt_gui/translations/*
+    translation: /src/qt_gui/translations/
+    multilingual: 1
