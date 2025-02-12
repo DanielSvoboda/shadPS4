@@ -84,7 +84,7 @@
     </message>
     <message>
       <source>Save</source>
-      <translation type="unfinished">Save</translation>
+      <translation>Salvar</translation>
     </message>
     <message>
       <source>Cheats</source>
