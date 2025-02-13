@@ -6,8 +6,4 @@ OPTS="-tr-function-alias QT_TRANSLATE_NOOP+=TRANSLATE,QT_TRANSLATE_NOOP+=TRANSLA
 SRCDIRS=$(realpath "$SCRIPTDIR/..") $(realpath "$SCRIPTDIR/../..")
 OUTDIR=$(realpath "$SCRIPTDIR")
 
-# Gerar o arquivo .ts com lupdate
 lupdate $SRCDIRS $OPTS -locations none -source-language en -ts "$OUTDIR/en_US.ts"
-
-# Formatar o arquivo .ts com xmllint
-xmllint --format "$OUTDIR/en_US.ts" -o "$OUTDIR/en_US.ts"
