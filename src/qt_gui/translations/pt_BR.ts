@@ -435,7 +435,7 @@
     </message>
     <message>
       <source>Down</source>
-      <translation type="unfinished">Down</translation>
+      <translation>Baixo</translation>
     </message>
     <message>
       <source>Left Stick Deadzone (def:2 max:127)</source>
