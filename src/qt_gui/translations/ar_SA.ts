@@ -421,7 +421,7 @@
     </message>
     <message>
       <source>Up</source>
-      <translation type="unfinished">Up</translation>
+      <translation>أعلى</translation>
     </message>
     <message>
       <source>Left</source>
