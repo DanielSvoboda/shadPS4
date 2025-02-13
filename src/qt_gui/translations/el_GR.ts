@@ -5,7 +5,7 @@
     <name>AboutDialog</name>
     <message>
       <source>About shadPS4</source>
-      <translation type="unfinished">About shadPS4</translation>
+      <translation>Σχετικά με το shadPS4</translation>
     </message>
     <message>
       <source>shadPS4</source>
