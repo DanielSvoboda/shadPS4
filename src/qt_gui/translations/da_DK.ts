@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- SPDX-FileCopyrightText: Copyright 2025 shadPS4 Emulator Project
-     SPDX-License-Identifier: GPL-2.0-or-later -->
 <!DOCTYPE TS>
 <TS version="2.1" language="da_DK" sourcelanguage="en">
   <context>
