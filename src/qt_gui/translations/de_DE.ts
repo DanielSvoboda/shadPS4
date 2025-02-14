@@ -159,8 +159,8 @@
       <translation>Cheats nicht gefunden</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Keine Cheats für dieses Spiel in dieser Version des gewählten Repositories gefunden. Versuche es mit einem anderen Repository oder einer anderen Version des Spiels.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
