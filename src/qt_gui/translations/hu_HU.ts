@@ -159,8 +159,8 @@
       <translation>Csalások nem találhatóak</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Nincs található csalás ezen a játékverzión ebben a kiválasztott tárolóban, próbálj meg egy másik tárolót vagy a játék egy másik verzióját.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
