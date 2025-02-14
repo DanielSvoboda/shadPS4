@@ -5,7 +5,7 @@
     <name>AboutDialog</name>
     <message>
       <source>About shadPS4</source>
-      <translation>Calabreso</translation>
+      <translation>TESTE</translation>
     </message>
     <message>
       <source>shadPS4</source>
