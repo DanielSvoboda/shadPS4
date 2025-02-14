@@ -159,8 +159,8 @@
       <translation>Fusk hittades inte</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Inga fusk hittades för detta spel i denna version av det valda förrådet. Prova ett annat förråd eller en annan version av spelet</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
