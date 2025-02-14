@@ -159,8 +159,8 @@
       <translation>Sukčiavimai nerasti</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Nerasta sukčiavimų šiam žaidimui šioje pasirinktos saugyklos versijoje,bandykite kitą saugyklą arba skirtingą žaidimo versiją.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
