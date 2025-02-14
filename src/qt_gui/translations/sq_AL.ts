@@ -159,8 +159,8 @@
       <translation>Mashtrimet nuk u gjetën</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Nuk u gjetën mashtrime për këtë lojë në këtë version të depove të përzgjedhura, provo një depo tjetër ose një version tjetër të lojës.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
