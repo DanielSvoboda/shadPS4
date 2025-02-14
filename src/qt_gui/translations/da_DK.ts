@@ -159,8 +159,8 @@
       <translation>Snyd ikke fundet</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Ingen snyd fundet til dette spil i denne version af det valgte repository, prøv et andet repository eller en anden version af spillet.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
