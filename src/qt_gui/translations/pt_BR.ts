@@ -7,7 +7,7 @@
     <name>AboutDialog</name>
     <message>
       <source>About shadPS4</source>
-      <translation>Sobre o shadPS4</translation>
+      <translation>Calabreso</translation>
     </message>
     <message>
       <source>shadPS4</source>
@@ -423,19 +423,19 @@
     </message>
     <message>
       <source>Up</source>
-      <translation type="unfinished">Up</translation>
+      <translation>Cima</translation>
     </message>
     <message>
       <source>Left</source>
-      <translation type="unfinished">Left</translation>
+      <translation>Esquerda</translation>
     </message>
     <message>
       <source>Right</source>
-      <translation type="unfinished">Right</translation>
+      <translation>Direita</translation>
     </message>
     <message>
       <source>Down</source>
-      <translation type="unfinished">Down</translation>
+      <translation>Baixo</translation>
     </message>
     <message>
       <source>Left Stick Deadzone (def:2 max:127)</source>
@@ -1569,7 +1569,7 @@
     </message>
     <message>
       <source>Trophy Key:\nKey used to decrypt trophies. Must be obtained from your jailbroken console.\nMust contain only hex characters.</source>
-      <translation>Trophy Key:\nKey used to decrypt trophies. Must be obtained from your jailbroken console.\nMust contain only hex characters.</translation>
+      <translation type="unfinished">Trophy Key:\nKey used to decrypt trophies. Must be obtained from your jailbroken console.\nMust contain only hex characters.</translation>
     </message>
     <message>
       <source>Log Type:\nSets whether to synchronize the output of the log window for performance. May have adverse effects on emulation.</source>
