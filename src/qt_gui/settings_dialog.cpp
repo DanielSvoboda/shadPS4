@@ -503,9 +503,11 @@ SettingsDialog::~SettingsDialog() {}
 void SettingsDialog::updateNoteTextEdit(const QString& elementName) {
     QString text; // texts are only in .ts translation files for better formatting
 
+    // clang-format off
     // General
     if (elementName == "consoleLanguageGroupBox") {
-        text = tr("consoleLanguageGroupBox");
+        text = tr("Console Language:\\nSets the language that the PS4 game uses.\\nIt's recommended to set this to a language the game supports, which will vary by region.");
+    // clang-format on
     } else if (elementName == "emulatorLanguageGroupBox") {
         text = tr("emulatorLanguageGroupBox");
     } else if (elementName == "fullscreenCheckBox") {
