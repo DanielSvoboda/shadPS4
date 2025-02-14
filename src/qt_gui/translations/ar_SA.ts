@@ -159,8 +159,8 @@
       <translation>لم يتم العثور على الغش</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>لم يتم العثور على غش لهذه اللعبة في هذا الإصدار من المستودع المحدد. حاول استخدام مستودع آخر أو إصدار آخر من اللعبة.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
