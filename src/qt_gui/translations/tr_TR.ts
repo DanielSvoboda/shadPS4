@@ -159,8 +159,8 @@
       <translation>Hileler Bulunamadı</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Bu oyun için seçilen depoda hile bulunamadı.Başka bir depo veya oyun sürümü deneyin.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
