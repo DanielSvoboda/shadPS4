@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-FileCopyrightText: Copyright 2025 shadPS4 Emulator Project
+     SPDX-License-Identifier: GPL-2.0-or-later -->
 <!DOCTYPE TS>
 <TS version="2.1" language="ar_SA" sourcelanguage="en">
   <context>
@@ -27,8 +29,8 @@
       <translation type="unfinished">Cheats / Patches for </translation>
     </message>
     <message>
-      <source>defaultTextEdit_MSG</source>
-      <translation>الغش والتصحيحات هي ميزات تجريبية.\nاستخدمها بحذر.\n\nقم بتنزيل الغش بشكل فردي عن طريق اختيار المستودع والنقر على زر التنزيل.\nفي علامة تبويب التصحيحات، يمكنك تنزيل جميع التصحيحات دفعة واحدة، واختيار ما تريد استخدامه، وحفظ اختياراتك.\n\nنظرًا لأننا لا نقوم بتطوير الغش/التصحيحات،\nيرجى الإبلاغ عن أي مشاكل إلى مؤلف الغش.\n\nهل قمت بإنشاء غش جديد؟ قم بزيارة:\nhttps://github.com/shadps4-emu/ps4_cheats</translation>
+      <source>Cheats/Patches are experimental.\nUse with caution.\n\nDownload cheats individually by selecting the repository and clicking the download button.\nIn the Patches tab, you can download all patches at once, choose which ones you want to use, and save your selection.\n\nSince we do not develop the Cheats/Patches,\nplease report issues to the cheat author.\n\nCreated a new cheat? Visit:\n</source>
+      <translation type="unfinished">Cheats/Patches are experimental.\nUse with caution.\n\nDownload cheats individually by selecting the repository and clicking the download button.\nIn the Patches tab, you can download all patches at once, choose which ones you want to use, and save your selection.\n\nSince we do not develop the Cheats/Patches,\nplease report issues to the cheat author.\n\nCreated a new cheat? Visit:\n</translation>
     </message>
     <message>
       <source>No Image Available</source>
@@ -159,16 +161,16 @@
       <translation>لم يتم العثور على الغش</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
-      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
+      <source>No Cheats found for this game in this version of the selected repository,try another repository or a different version of the game.</source>
+      <translation type="unfinished">No Cheats found for this game in this version of the selected repository,try another repository or a different version of the game.</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
       <translation>تم تنزيل الغش بنجاح</translation>
     </message>
     <message>
-      <source>CheatsDownloadedSuccessfully_MSG</source>
-      <translation>لقد نجحت في تنزيل الغش لهذا الإصدار من اللعبة من المستودع المحدد. يمكنك محاولة التنزيل من مستودع آخر. إذا كان متاحًا، يمكنك اختياره عن طريق تحديد الملف من القائمة.</translation>
+      <source>You have successfully downloaded the cheats for this version of the game from the selected repository. You can try downloading from another repository, if it is available it will also be possible to use it by selecting the file from the list.</source>
+      <translation type="unfinished">You have successfully downloaded the cheats for this version of the game from the selected repository. You can try downloading from another repository, if it is available it will also be possible to use it by selecting the file from the list.</translation>
     </message>
     <message>
       <source>Failed to save:</source>
@@ -183,8 +185,8 @@
       <translation>اكتمل التنزيل</translation>
     </message>
     <message>
-      <source>DownloadComplete_MSG</source>
-      <translation>تم تنزيل التصحيحات بنجاح! تم تنزيل جميع التصحيحات لجميع الألعاب، ولا داعي لتنزيلها بشكل فردي لكل لعبة كما هو الحال مع الغش. إذا لم يظهر التحديث، قد يكون السبب أنه غير متوفر للإصدار وسيريال اللعبة المحدد.</translation>
+      <source>Patches Downloaded Successfully! All Patches available for all games have been downloaded, there is no need to download them individually for each game as happens in Cheats. If the patch does not appear, it may be that it does not exist for the specific serial and version of the game.</source>
+      <translation type="unfinished">Patches Downloaded Successfully! All Patches available for all games have been downloaded, there is no need to download them individually for each game as happens in Cheats. If the patch does not appear, it may be that it does not exist for the specific serial and version of the game.</translation>
     </message>
     <message>
       <source>Failed to parse JSON data from HTML.</source>
@@ -262,8 +264,8 @@
       <translation>خطأ في الشبكة:</translation>
     </message>
     <message>
-      <source>Error_Github_limit_MSG</source>
-      <translation>يتيح التحديث التلقائي ما يصل إلى 60 عملية تحقق من التحديث في الساعة.\nلقد وصلت إلى هذا الحد. الرجاء المحاولة مرة أخرى لاحقًا.</translation>
+      <source>The Auto Updater allows up to 60 update checks per hour.\nYou have reached this limit. Please try again later.</source>
+      <translation type="unfinished">The Auto Updater allows up to 60 update checks per hour.\nYou have reached this limit. Please try again later.</translation>
     </message>
     <message>
       <source>Failed to parse update information.</source>
@@ -1538,84 +1540,84 @@
       <translation>وجّه الماوس نحو خيار لعرض وصفه.</translation>
     </message>
     <message>
-      <source>consoleLanguageGroupBox</source>
-      <translation>لغة الجهاز:\nتحدد لغة اللعبة التي يستخدمها جهاز PS4.\nيوصى بضبطها على لغة يدعمها الجهاز، والتي قد تختلف حسب المنطقة.</translation>
+      <source>Console Language:\nSets the language that the PS4 game uses.\nIt&apos;s recommended to set this to a language the game supports, which will vary by region.</source>
+      <translation type="unfinished">Console Language:\nSets the language that the PS4 game uses.\nIt&apos;s recommended to set this to a language the game supports, which will vary by region.</translation>
     </message>
     <message>
-      <source>emulatorLanguageGroupBox</source>
-      <translation>لغة المحاكي:\nتحدد لغة واجهة المستخدم الخاصة بالمحاكي.</translation>
+      <source>Emulator Language:\nSets the language of the emulator&apos;s user interface.</source>
+      <translation type="unfinished">Emulator Language:\nSets the language of the emulator&apos;s user interface.</translation>
     </message>
     <message>
-      <source>fullscreenCheckBox</source>
-      <translation>تمكين وضع ملء الشاشة:\nيجعل نافذة اللعبة تنتقل تلقائيًا إلى وضع ملء الشاشة.\nيمكن التبديل بالضغط على المفتاح F11.</translation>
+      <source>Enable Full Screen:\nAutomatically puts the game window into full-screen mode.\nThis can be toggled by pressing the F11 key.</source>
+      <translation type="unfinished">Enable Full Screen:\nAutomatically puts the game window into full-screen mode.\nThis can be toggled by pressing the F11 key.</translation>
     </message>
     <message>
-      <source>separateUpdatesCheckBox</source>
-      <translation>Enable Separate Update Folder:\nEnables installing game updates into a separate folder for easy management.</translation>
+      <source>Enable Separate Update Folder:\nEnables installing game updates into a separate folder for easy management.\nThis can be manually created by adding the extracted update to the game folder with the name &quot;CUSA00000-UPDATE&quot; where the CUSA ID matches the game&apos;s ID.</source>
+      <translation type="unfinished">Enable Separate Update Folder:\nEnables installing game updates into a separate folder for easy management.\nThis can be manually created by adding the extracted update to the game folder with the name &quot;CUSA00000-UPDATE&quot; where the CUSA ID matches the game&apos;s ID.</translation>
     </message>
     <message>
-      <source>showSplashCheckBox</source>
-      <translation>إظهار شاشة البداية:\nيعرض شاشة البداية الخاصة باللعبة (صورة خاصة) أثناء بدء التشغيل.</translation>
+      <source>Show Splash Screen:\nShows the game&apos;s splash screen (a special image) while the game is starting.</source>
+      <translation type="unfinished">Show Splash Screen:\nShows the game&apos;s splash screen (a special image) while the game is starting.</translation>
     </message>
     <message>
-      <source>discordRPCCheckbox</source>
-      <translation>تفعيل حالة الثراء في ديسكورد:\nيعرض أيقونة المحاكي ومعلومات ذات صلة على ملفك الشخصي في ديسكورد.</translation>
+      <source>Enable Discord Rich Presence:\nDisplays the emulator icon and relevant information on your Discord profile.</source>
+      <translation type="unfinished">Enable Discord Rich Presence:\nDisplays the emulator icon and relevant information on your Discord profile.</translation>
     </message>
     <message>
-      <source>userName</source>
-      <translation>اسم المستخدم:\nيضبط اسم حساب PS4، الذي قد يتم عرضه في بعض الألعاب.</translation>
+      <source>Username:\nSets the PS4&apos;s account username, which may be displayed by some games.</source>
+      <translation type="unfinished">Username:\nSets the PS4&apos;s account username, which may be displayed by some games.</translation>
     </message>
     <message>
-      <source>TrophyKey</source>
-      <translation>Trophy Key:\nKey used to decrypt trophies. Must be obtained from your jailbroken console.\nMust contain only hex characters.</translation>
+      <source>Trophy Key:\nKey used to decrypt trophies. Must be obtained from your jailbroken console.\nMust contain only hex characters.</source>
+      <translation type="unfinished">Trophy Key:\nKey used to decrypt trophies. Must be obtained from your jailbroken console.\nMust contain only hex characters.</translation>
     </message>
     <message>
-      <source>logTypeGroupBox</source>
-      <translation>نوع السجل:\nيضبط ما إذا كان سيتم مزامنة مخرجات نافذة السجل للأداء. قد يؤثر سلبًا على المحاكاة.</translation>
+      <source>Log Type:\nSets whether to synchronize the output of the log window for performance. May have adverse effects on emulation.</source>
+      <translation type="unfinished">Log Type:\nSets whether to synchronize the output of the log window for performance. May have adverse effects on emulation.</translation>
     </message>
     <message>
-      <source>logFilter</source>
-      <translation>فلتر السجل:\nيقوم بتصفية السجل لطباعة معلومات محددة فقط.\nأمثلة: &quot;Core:Trace&quot; &quot;Lib.Pad:Debug Common.Filesystem:Error&quot; &quot;*:Critical&quot; المستويات: Trace, Debug, Info, Warning, Error, Critical - بالترتيب، مستوى محدد يخفي جميع المستويات التي تسبقه ويعرض جميع المستويات بعده.</translation>
+      <source>Log Filter:\nFilters the log to only print specific information.\nExamples: &quot;Core:Trace&quot; &quot;Lib.Pad:Debug Common.Filesystem:Error&quot; &quot;*:Critical&quot;\nLevels: Trace, Debug, Info, Warning, Error, Critical - in this order, a specific level silences all levels preceding it in the list and logs every level after it.</source>
+      <translation type="unfinished">Log Filter:\nFilters the log to only print specific information.\nExamples: &quot;Core:Trace&quot; &quot;Lib.Pad:Debug Common.Filesystem:Error&quot; &quot;*:Critical&quot;\nLevels: Trace, Debug, Info, Warning, Error, Critical - in this order, a specific level silences all levels preceding it in the list and logs every level after it.</translation>
     </message>
     <message>
-      <source>updaterGroupBox</source>
-      <translation>تحديث: Release: إصدارات رسمية تصدر شهريًا، قد تكون قديمة بعض الشيء، لكنها أكثر استقرارًا واختبارًا. Nightly: إصدارات تطوير تحتوي على أحدث الميزات والإصلاحات، لكنها قد تحتوي على أخطاء وأقل استقرارًا.</translation>
+      <source>Update:\nRelease: Official versions released every month that may be very outdated, but are more reliable and tested.\nNightly: Development versions that have all the latest features and fixes, but may contain bugs and are less stable.</source>
+      <translation type="unfinished">Update:\nRelease: Official versions released every month that may be very outdated, but are more reliable and tested.\nNightly: Development versions that have all the latest features and fixes, but may contain bugs and are less stable.</translation>
     </message>
     <message>
-      <source>GUIBackgroundImageGroupBox</source>
-      <translation type="unfinished">GUIBackgroundImageGroupBox</translation>
+      <source>Background Image:\nControl the opacity of the game background image.</source>
+      <translation type="unfinished">Background Image:\nControl the opacity of the game background image.</translation>
     </message>
     <message>
-      <source>GUIMusicGroupBox</source>
-      <translation>تشغيل موسيقى العنوان:\nإذا كانت اللعبة تدعم ذلك، قم بتمكين تشغيل موسيقى خاصة عند اختيار اللعبة في واجهة المستخدم.</translation>
+      <source>Play Title Music:\nIf a game supports it, enable playing special music when selecting the game in the GUI.</source>
+      <translation type="unfinished">Play Title Music:\nIf a game supports it, enable playing special music when selecting the game in the GUI.</translation>
     </message>
     <message>
-      <source>disableTrophycheckBox</source>
-      <translation>Disable Trophy Pop-ups:\nDisable in-game trophy notifications. Trophy progress can still be tracked using the Trophy Viewer (right-click the game in the main window).</translation>
+      <source>Disable Trophy Pop-ups:\nDisable in-game trophy notifications. Trophy progress can still be tracked using the Trophy Viewer (right-click the game in the main window).</source>
+      <translation type="unfinished">Disable Trophy Pop-ups:\nDisable in-game trophy notifications. Trophy progress can still be tracked using the Trophy Viewer (right-click the game in the main window).</translation>
     </message>
     <message>
-      <source>hideCursorGroupBox</source>
-      <translation>إخفاء المؤشر:\nاختر متى سيختفي المؤشر:\nأبداً: سترى الفأرة دائماً.\nعاطل: حدد وقتاً لاختفائه بعد أن يكون غير مستخدم.\nدائماً: لن ترى الفأرة أبداً.</translation>
+      <source>Hide Cursor:\nChoose when the cursor will disappear:\nNever: You will always see the mouse.\nidle: Set a time for it to disappear after being idle.\nAlways: you will never see the mouse.</source>
+      <translation type="unfinished">Hide Cursor:\nChoose when the cursor will disappear:\nNever: You will always see the mouse.\nidle: Set a time for it to disappear after being idle.\nAlways: you will never see the mouse.</translation>
     </message>
     <message>
-      <source>idleTimeoutGroupBox</source>
-      <translation>حدد وقتاً لاختفاء الفأرة بعد أن تكون غير مستخدم.</translation>
+      <source>Hide Idle Cursor Timeout:\nThe duration (seconds) after which the cursor that has been idle hides itself.</source>
+      <translation type="unfinished">Hide Idle Cursor Timeout:\nThe duration (seconds) after which the cursor that has been idle hides itself.</translation>
     </message>
     <message>
-      <source>backButtonBehaviorGroupBox</source>
-      <translation>سلوك زر العودة:\nيضبط زر العودة في وحدة التحكم ليحاكي الضغط على الموضع المحدد على لوحة اللمس في PS4.</translation>
+      <source>Back Button Behavior:\nSets the controller&apos;s back button to emulate tapping the specified position on the PS4 touchpad.</source>
+      <translation type="unfinished">Back Button Behavior:\nSets the controller&apos;s back button to emulate tapping the specified position on the PS4 touchpad.</translation>
     </message>
     <message>
-      <source>enableCompatibilityCheckBox</source>
-      <translation>Display Compatibility Data:\nDisplays game compatibility information in table view. Enable &quot;Update Compatibility On Startup&quot; to get up-to-date information.</translation>
+      <source>Display Compatibility Data:\nDisplays game compatibility information in table view. Enable &quot;Update Compatibility On Startup&quot; to get up-to-date information.</source>
+      <translation type="unfinished">Display Compatibility Data:\nDisplays game compatibility information in table view. Enable &quot;Update Compatibility On Startup&quot; to get up-to-date information.</translation>
     </message>
     <message>
-      <source>checkCompatibilityOnStartupCheckBox</source>
-      <translation>Update Compatibility On Startup:\nAutomatically update the compatibility database when shadPS4 starts.</translation>
+      <source>Update Compatibility On Startup:\nAutomatically update the compatibility database when shadPS4 starts.</source>
+      <translation type="unfinished">Update Compatibility On Startup:\nAutomatically update the compatibility database when shadPS4 starts.</translation>
     </message>
     <message>
-      <source>updateCompatibilityButton</source>
-      <translation>Update Compatibility Database:\nImmediately update the compatibility database.</translation>
+      <source>Update Compatibility Database:\nImmediately update the compatibility database.</source>
+      <translation type="unfinished">Update Compatibility Database:\nImmediately update the compatibility database.</translation>
     </message>
     <message>
       <source>Never</source>
@@ -1646,84 +1648,84 @@
       <translation>لا شيء</translation>
     </message>
     <message>
-      <source>graphicsAdapterGroupBox</source>
-      <translation>جهاز الرسومات:\nعلى الأنظمة متعددة وحدات معالجة الرسومات، اختر وحدة معالجة الرسومات التي سيستخدمها المحاكي من قائمة منسدلة،\nأو اختر &quot;Auto Select&quot; لتحديدها تلقائيًا.</translation>
+      <source>Graphics Device:\nOn multiple GPU systems, select the GPU the emulator will use from the drop down list,\nor select &quot;Auto Select&quot; to automatically determine it.</source>
+      <translation type="unfinished">Graphics Device:\nOn multiple GPU systems, select the GPU the emulator will use from the drop down list,\nor select &quot;Auto Select&quot; to automatically determine it.</translation>
     </message>
     <message>
-      <source>resolutionLayout</source>
-      <translation>العرض / الارتفاع:\nيضبط حجم نافذة المحاكي عند التشغيل، والذي يمكن تغيير حجمه أثناء اللعب.\nهذا يختلف عن دقة اللعبة نفسها.</translation>
+      <source>Width/Height:\nSets the size of the emulator window at launch, which can be resized during gameplay.\nThis is different from the in-game resolution.</source>
+      <translation type="unfinished">Width/Height:\nSets the size of the emulator window at launch, which can be resized during gameplay.\nThis is different from the in-game resolution.</translation>
     </message>
     <message>
-      <source>heightDivider</source>
-      <translation>مقسم معدل التحديث:\nيتم مضاعفة معدل الإطارات الذي يتم تحديث المحاكي به بواسطة هذا الرقم. قد يؤدي تغيير هذا إلى آثار سلبية، مثل زيادة سرعة اللعبة أو كسر الوظائف الأساسية التي لا تتوقع هذا التغيير!</translation>
+      <source>Vblank Divider:\nThe frame rate at which the emulator refreshes at is multiplied by this number. Changing this may have adverse effects, such as increasing the game speed, or breaking critical game functionality that does not expect this to change!</source>
+      <translation type="unfinished">Vblank Divider:\nThe frame rate at which the emulator refreshes at is multiplied by this number. Changing this may have adverse effects, such as increasing the game speed, or breaking critical game functionality that does not expect this to change!</translation>
     </message>
     <message>
-      <source>dumpShadersCheckBox</source>
-      <translation>تمكين تفريغ الـ Shaders:\nلأغراض تصحيح الأخطاء التقنية، يحفظ الـ Shaders الخاصة باللعبة في مجلد أثناء التشغيل.</translation>
+      <source>Enable Shaders Dumping:\nFor the sake of technical debugging, saves the games shaders to a folder as they render.</source>
+      <translation type="unfinished">Enable Shaders Dumping:\nFor the sake of technical debugging, saves the games shaders to a folder as they render.</translation>
     </message>
     <message>
-      <source>nullGpuCheckBox</source>
-      <translation>تمكين GPU الافتراضية:\nلأغراض تصحيح الأخطاء التقنية، يقوم بتعطيل عرض اللعبة كما لو لم يكن هناك بطاقة رسومات.</translation>
+      <source>Enable Null GPU:\nFor the sake of technical debugging, disables game rendering as if there were no graphics card.</source>
+      <translation type="unfinished">Enable Null GPU:\nFor the sake of technical debugging, disables game rendering as if there were no graphics card.</translation>
     </message>
     <message>
-      <source>enableHDRCheckBox</source>
-      <translation type="unfinished">enableHDRCheckBox</translation>
+      <source>Enable HDR:\nEnables HDR in games that support it.\nYour monitor must have support for the BT2020 PQ color space and the RGB10A2 swapchain format.</source>
+      <translation type="unfinished">Enable HDR:\nEnables HDR in games that support it.\nYour monitor must have support for the BT2020 PQ color space and the RGB10A2 swapchain format.</translation>
     </message>
     <message>
-      <source>gameFoldersBox</source>
-      <translation>مجلدات اللعبة:\nقائمة بالمجلدات للتحقق من الألعاب المثبتة.</translation>
+      <source>Game Folders:\nThe list of folders to check for installed games.</source>
+      <translation type="unfinished">Game Folders:\nThe list of folders to check for installed games.</translation>
     </message>
     <message>
-      <source>addFolderButton</source>
-      <translation>إضافة:\nأضف مجلداً إلى القائمة.</translation>
+      <source>Add:\nAdd a folder to the list.</source>
+      <translation type="unfinished">Add:\nAdd a folder to the list.</translation>
     </message>
     <message>
-      <source>removeFolderButton</source>
-      <translation>إزالة:\nأزل مجلداً من القائمة.</translation>
+      <source>Remove:\nRemove a folder from the list.</source>
+      <translation type="unfinished">Remove:\nRemove a folder from the list.</translation>
     </message>
     <message>
-      <source>debugDump</source>
-      <translation>تمكين تفريغ التصحيح:\nيحفظ رموز الاستيراد والتصدير ومعلومات رأس الملف للبرنامج الحالي لجهاز PS4 إلى دليل.</translation>
+      <source>Enable Debug Dumping:\nSaves the import and export symbols and file header information of the currently running PS4 program to a directory.</source>
+      <translation type="unfinished">Enable Debug Dumping:\nSaves the import and export symbols and file header information of the currently running PS4 program to a directory.</translation>
     </message>
     <message>
-      <source>vkValidationCheckBox</source>
-      <translation>تمكين طبقات التحقق من Vulkan:\nيتيح نظام يتحقق من حالة مشغل Vulkan ويسجل معلومات حول حالته الداخلية. سيؤدي هذا إلى تقليل الأداء ومن المحتمل تغيير سلوك المحاكاة.</translation>
+      <source>Enable Vulkan Validation Layers:\nEnables a system that validates the state of the Vulkan renderer and logs information about its internal state.\nThis will reduce performance and likely change the behavior of emulation.</source>
+      <translation type="unfinished">Enable Vulkan Validation Layers:\nEnables a system that validates the state of the Vulkan renderer and logs information about its internal state.\nThis will reduce performance and likely change the behavior of emulation.</translation>
     </message>
     <message>
-      <source>vkSyncValidationCheckBox</source>
-      <translation>تمكين التحقق من تزامن Vulkan:\nيتيح نظام يتحقق من توقيت مهام عرض Vulkan. سيؤدي ذلك إلى تقليل الأداء ومن المحتمل تغيير سلوك المحاكاة.</translation>
+      <source>Enable Vulkan Synchronization Validation:\nEnables a system that validates the timing of Vulkan rendering tasks.\nThis will reduce performance and likely change the behavior of emulation.</source>
+      <translation type="unfinished">Enable Vulkan Synchronization Validation:\nEnables a system that validates the timing of Vulkan rendering tasks.\nThis will reduce performance and likely change the behavior of emulation.</translation>
     </message>
     <message>
-      <source>rdocCheckBox</source>
-      <translation>تمكين تصحيح RenderDoc:\nإذا تم التمكين، سيوفر المحاكي توافقًا مع Renderdoc لالتقاط وتحليل الإطار الذي يتم عرضه حاليًا.</translation>
+      <source>Enable RenderDoc Debugging:\nIf enabled, the emulator will provide compatibility with Renderdoc to allow capture and analysis of the currently rendered frame.</source>
+      <translation type="unfinished">Enable RenderDoc Debugging:\nIf enabled, the emulator will provide compatibility with Renderdoc to allow capture and analysis of the currently rendered frame.</translation>
     </message>
     <message>
-      <source>collectShaderCheckBox</source>
-      <translation>Collect Shaders:\nYou need this enabled to edit shaders with the debug menu (Ctrl + F10).</translation>
+      <source>Collect Shaders:\nYou need this enabled to edit shaders with the debug menu (Ctrl + F10).</source>
+      <translation type="unfinished">Collect Shaders:\nYou need this enabled to edit shaders with the debug menu (Ctrl + F10).</translation>
     </message>
     <message>
-      <source>crashDiagnosticsCheckBox</source>
-      <translation>Crash Diagnostics:\nCreates a .yaml file with info about the Vulkan state at the time of crashing.\nUseful for debugging &apos;Device lost&apos; errors. If you have this enabled, you should enable Host AND Guest Debug Markers.\nDoes not work on Intel GPUs.\nYou need Vulkan Validation Layers enabled and the Vulkan SDK for this to work.</translation>
+      <source>Crash Diagnostics:\nCreates a .yaml file with info about the Vulkan state at the time of crashing.\nUseful for debugging &apos;Device lost&apos; errors. If you have this enabled, you should enable Host AND Guest Debug Markers.\nDoes not work on Intel GPUs.\nYou need Vulkan Validation Layers enabled and the Vulkan SDK for this to work.</source>
+      <translation type="unfinished">Crash Diagnostics:\nCreates a .yaml file with info about the Vulkan state at the time of crashing.\nUseful for debugging &apos;Device lost&apos; errors. If you have this enabled, you should enable Host AND Guest Debug Markers.\nDoes not work on Intel GPUs.\nYou need Vulkan Validation Layers enabled and the Vulkan SDK for this to work.</translation>
     </message>
     <message>
-      <source>copyGPUBuffersCheckBox</source>
-      <translation>Copy GPU Buffers:\nGets around race conditions involving GPU submits.\nMay or may not help with PM4 type 0 crashes.</translation>
+      <source>Copy GPU Buffers:\nGets around race conditions involving GPU submits.\nMay or may not help with PM4 type 0 crashes.</source>
+      <translation type="unfinished">Copy GPU Buffers:\nGets around race conditions involving GPU submits.\nMay or may not help with PM4 type 0 crashes.</translation>
     </message>
     <message>
-      <source>hostMarkersCheckBox</source>
-      <translation>Host Debug Markers:\nInserts emulator-side information like markers for specific AMDGPU commands around Vulkan commands, as well as giving resources debug names.\nIf you have this enabled, you should enable Crash Diagnostics.\nUseful for programs like RenderDoc.</translation>
+      <source>Host Debug Markers:\nInserts emulator-side information like markers for specific AMDGPU commands around Vulkan commands, as well as giving resources debug names.\nIf you have this enabled, you should enable Crash Diagnostics.\nUseful for programs like RenderDoc.</source>
+      <translation type="unfinished">Host Debug Markers:\nInserts emulator-side information like markers for specific AMDGPU commands around Vulkan commands, as well as giving resources debug names.\nIf you have this enabled, you should enable Crash Diagnostics.\nUseful for programs like RenderDoc.</translation>
     </message>
     <message>
-      <source>guestMarkersCheckBox</source>
-      <translation>Guest Debug Markers:\nInserts any debug markers the game itself has added to the command buffer.\nIf you have this enabled, you should enable Crash Diagnostics.\nUseful for programs like RenderDoc.</translation>
+      <source>Guest Debug Markers:\nInserts any debug markers the game itself has added to the command buffer.\nIf you have this enabled, you should enable Crash Diagnostics.\nUseful for programs like RenderDoc.</source>
+      <translation type="unfinished">Guest Debug Markers:\nInserts any debug markers the game itself has added to the command buffer.\nIf you have this enabled, you should enable Crash Diagnostics.\nUseful for programs like RenderDoc.</translation>
     </message>
     <message>
-      <source>saveDataBox</source>
-      <translation type="unfinished">saveDataBox</translation>
+      <source>Save Data Path:\nThe folder where game save data will be saved.</source>
+      <translation type="unfinished">Save Data Path:\nThe folder where game save data will be saved.</translation>
     </message>
     <message>
-      <source>browseButton</source>
-      <translation type="unfinished">browseButton</translation>
+      <source>Browse:\nBrowse for a folder to set as the save data path.</source>
+      <translation type="unfinished">Browse:\nBrowse for a folder to set as the save data path.</translation>
     </message>
     <message>
       <source>Borderless</source>
