@@ -1601,7 +1601,7 @@
     </message>
     <message>
       <source>Hide Idle Cursor Timeout:\nThe duration (seconds) after which the cursor that has been idle hides itself.</source>
-      <translation>Nustatykite laiką, po kurio pelė dings, kai bus neaktyvi.</translation>
+      <translation>Slėpti tuščiosios eigos žymeklio skirtąjį laiką:\nTrukmė (sekundėmis), po kurios neaktyvus žymeklis pasislepia.</translation>
     </message>
     <message>
       <source>Back Button Behavior:\nSets the controller&apos;s back button to emulate tapping the specified position on the PS4 touchpad.</source>
@@ -1693,7 +1693,7 @@
     </message>
     <message>
       <source>Enable Vulkan Synchronization Validation:\nEnables a system that validates the timing of Vulkan rendering tasks.\nThis will reduce performance and likely change the behavior of emulation.</source>
-      <translation>Įjungti Vulkan sinchronizacijos patvirtinimą:\nĮjungia sistemą, kuri patvirtina Vulkan renderavimo užduočių laiką. Tai sumažins našumą ir tikriausiai pakeis emuliacijos elgesį.</translation>
+      <translation>Įjungti Vulkan sinchronizacijos patvirtinimą:\nĮjungia sistemą, kuri patvirtina Vulkan renderavimo užduočių laiką.\nTai sumažins našumą ir tikriausiai pakeis emuliacijos elgesį.</translation>
     </message>
     <message>
       <source>Enable RenderDoc Debugging:\nIf enabled, the emulator will provide compatibility with Renderdoc to allow capture and analysis of the currently rendered frame.</source>
