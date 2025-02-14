@@ -159,8 +159,8 @@
       <translation>チートが見つかりません</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>このゲームのこのバージョンのチートが選択されたリポジトリに見つかりませんでした。別のリポジトリまたはゲームの別のバージョンを試してください。</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
