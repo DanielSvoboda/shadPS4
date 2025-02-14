@@ -159,8 +159,8 @@
       <translation>Cheat Tidak Ditemukan</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Cheat tidak ditemukan untuk game ini dalam versi repositori yang dipilih,cobalah repositori lain atau versi game yang berbeda.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
