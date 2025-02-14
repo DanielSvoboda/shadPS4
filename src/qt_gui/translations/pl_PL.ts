@@ -159,8 +159,8 @@
       <translation>Nie znaleziono kodów</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Nie znaleziono kodów do tej gry w tej wersji wybranego repozytorium. Spróbuj innego repozytorium lub innej wersji gry.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
