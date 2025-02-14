@@ -471,11 +471,11 @@
     </message>
     <message>
       <source>KBM Controls</source>
-      <translation type="unfinished">KBM Controls</translation>
+      <translation>KBM-kontroller</translation>
     </message>
     <message>
       <source>KBM Editor</source>
-      <translation type="unfinished">KBM Editor</translation>
+      <translation>KBM-redigerare</translation>
     </message>
     <message>
       <source>Back</source>
@@ -1194,7 +1194,7 @@
     </message>
     <message>
       <source>Installed</source>
-      <translation type="unfinished">Installed</translation>
+      <translation>Installerat</translation>
     </message>
     <message>
       <source>Size</source>
@@ -1202,15 +1202,15 @@
     </message>
     <message>
       <source>Category</source>
-      <translation type="unfinished">Category</translation>
+      <translation>Kategori</translation>
     </message>
     <message>
       <source>Type</source>
-      <translation type="unfinished">Type</translation>
+      <translation>Typ</translation>
     </message>
     <message>
       <source>App Ver</source>
-      <translation type="unfinished">App Ver</translation>
+      <translation>Appver</translation>
     </message>
     <message>
       <source>FW</source>
@@ -1222,7 +1222,7 @@
     </message>
     <message>
       <source>Flags</source>
-      <translation type="unfinished">Flags</translation>
+      <translation>Flaggor</translation>
     </message>
     <message>
       <source>Path</source>
@@ -1238,7 +1238,7 @@
     </message>
     <message>
       <source>Package</source>
-      <translation type="unfinished">Package</translation>
+      <translation>Paket</translation>
     </message>
   </context>
   <context>
@@ -1393,7 +1393,7 @@
     </message>
     <message>
       <source>Enable HDR</source>
-      <translation type="unfinished">Enable HDR</translation>
+      <translation>Aktivera HDR</translation>
     </message>
     <message>
       <source>Paths</source>
@@ -1669,7 +1669,7 @@
     </message>
     <message>
       <source>Enable HDR:\nEnables HDR in games that support it.\nYour monitor must have support for the BT2020 PQ color space and the RGB10A2 swapchain format.</source>
-      <translation type="unfinished">Enable HDR:\nEnables HDR in games that support it.\nYour monitor must have support for the BT2020 PQ color space and the RGB10A2 swapchain format.</translation>
+      <translation>Aktivera HDR:\nAktiverar HDR i spel som har stöd för det.\nDin skärm måste ha stöd för färgrymden BT2020 PQ samt swapchain-formatet RGB10A2.</translation>
     </message>
     <message>
       <source>Game Folders:\nThe list of folders to check for installed games.</source>
