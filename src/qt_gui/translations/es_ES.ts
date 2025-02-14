@@ -159,8 +159,8 @@
       <translation>Trucos no encontrados</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>No se encontraron trucos para este juego en esta versión del repositorio seleccionado,intenta con otro repositorio o con una versión diferente del juego.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
