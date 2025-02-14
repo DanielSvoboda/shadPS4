@@ -159,8 +159,8 @@
       <translation>未找到作弊碼</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>在此版本的儲存庫中未找到該遊戲的作弊碼，請嘗試另一個儲存庫或不同版本的遊戲。</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
