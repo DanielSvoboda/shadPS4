@@ -159,8 +159,8 @@
       <translation>Không tìm thấy Cheat</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Không tìm thấy Cheat cho trò chơi này trong phiên bản kho lưu trữ đã chọn,hãy thử kho lưu trữ khác hoặc phiên bản khác của trò chơi.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
