@@ -5,7 +5,7 @@
     <name>AboutDialog</name>
     <message>
       <source>About shadPS4</source>
-      <translation>TESTE</translation>
+      <translation>Calabreso</translation>
     </message>
     <message>
       <source>shadPS4</source>
@@ -159,8 +159,8 @@
       <translation>Cheats Não Encontrados</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Nenhum cheat encontrado para este jogo nesta versão do repositório selecionado, tente outro repositório ou uma versão diferente do jogo.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
