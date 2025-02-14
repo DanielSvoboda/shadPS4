@@ -579,7 +579,7 @@ void CheatsPatches::downloadCheats(const QString& source, const QString& gameSer
                     }
                 }
                 if (!foundFiles && showMessageBox) {
-                    QMessageBox::warning(this, tr("Cheats Not Found"), tr("CheatsNotFound_MSG"));
+                    QMessageBox::warning(this, tr("Cheats Not Found"), tr("CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA"));
                 }
             } else if (source == "GoldHEN" || source == "shadPS4") {
                 QString textContent(jsonData);
@@ -655,7 +655,7 @@ void CheatsPatches::downloadCheats(const QString& source, const QString& gameSer
                     }
                 }
                 if (!foundFiles && showMessageBox) {
-                    QMessageBox::warning(this, tr("Cheats Not Found"), tr("CheatsNotFound_MSG"));
+                    QMessageBox::warning(this, tr("Cheats Not Found"), tr("CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA"));
                 }
             }
             if (foundFiles && showMessageBox) {
@@ -666,7 +666,7 @@ void CheatsPatches::downloadCheats(const QString& source, const QString& gameSer
 
         } else {
             if (showMessageBox) {
-                QMessageBox::warning(this, tr("Cheats Not Found"), tr("CheatsNotFound_MSG"));
+                QMessageBox::warning(this, tr("Cheats Not Found"), tr("CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA"));
             }
         }
         reply->deleteLater();
