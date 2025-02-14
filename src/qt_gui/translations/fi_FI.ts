@@ -159,8 +159,8 @@
       <translation>Huijauksia Ei Löytynyt</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Huijauksia ei löytynyt tälle pelin versiolle valitusta repositoriosta. Kokeile toista repositoriota tai eri versiota pelistä.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
