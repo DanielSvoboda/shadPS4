@@ -160,7 +160,7 @@
     </message>
     <message>
       <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
-      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
+      <translation>Nenhum cheat encontrado para este jogo nesta versão do repositório selecionado, tente outro repositório ou uma versão diferente do jogo.</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
