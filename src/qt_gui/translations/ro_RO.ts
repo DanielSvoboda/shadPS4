@@ -159,8 +159,8 @@
       <translation>Cheats Nu au fost găsite</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Nu au fost găsite cheats pentru acest joc în această versiune a repository-ului selectat, încearcă un alt repository sau o versiune diferită a jocului.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
