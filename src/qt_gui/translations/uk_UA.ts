@@ -159,8 +159,8 @@
       <translation>Читів не знайдено</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>У вибраному репозиторії не знайдено Читів для цієї гри, спробуйте інший репозиторій або іншу версію гри.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
