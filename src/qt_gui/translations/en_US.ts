@@ -159,7 +159,7 @@
         <translation>Cheats Not Found</translation>
     </message>
     <message>
-        <source>CheatsNotFound_MSG</source>
+        <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
         <translation>No Cheats found for this game in this version of the selected repository,try another repository or a different version of the game.</translation>
     </message>
     <message>
