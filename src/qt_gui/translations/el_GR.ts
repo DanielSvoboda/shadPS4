@@ -159,8 +159,8 @@
       <translation>Δεν βρέθηκαν Cheats</translation>
     </message>
     <message>
-      <source>CheatsNotFound_MSG</source>
-      <translation>Δεν βρέθηκαν cheats για αυτό το παιχνίδι στην τρέχουσα έκδοση του επιλεγμένου αποθετηρίου. Δοκιμάστε να κατεβάσετε από άλλο αποθετήριο ή άλλη έκδοση του παιχνιδιού.</translation>
+      <source>CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</source>
+      <translation type="unfinished">CheatsNotFound_MSGAAAAAAAAAAAAAAAAAAAA</translation>
     </message>
     <message>
       <source>Cheats Downloaded Successfully</source>
