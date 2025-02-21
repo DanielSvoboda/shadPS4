@@ -30,9 +30,9 @@ jobs:
     - name: Install
       run: |
         wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-        sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main'
+        sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-19 main'
         sudo apt update
-        sudo apt install clang-format-18
+        sudo apt install clang-format-19
     - name: Build
       env:
         COMMIT_RANGE: ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}
@@ -76,7 +76,7 @@ jobs:
             ${{ env.cache-name }}-
 
     - name: Cache CMake Build
-      uses: hendrikmuhs/ccache-action@v1.2.14
+      uses: hendrikmuhs/ccache-action@v1.2.17
       env:
           cache-name: ${{ runner.os }}-sdl-cache-cmake-build
       with:
@@ -111,10 +111,10 @@ jobs:
     - name: Setup Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: 6.7.3
+        version: 6.9.0
         host: windows
         target: desktop
-        arch: win64_msvc2019_64
+        arch: win64_msvc2022_64
         archives: qtbase qttools
         modules: qtmultimedia
 
@@ -130,7 +130,7 @@ jobs:
             ${{ env.cache-name }}-
 
     - name: Cache CMake Build
-      uses: hendrikmuhs/ccache-action@v1.2.14
+      uses: hendrikmuhs/ccache-action@v1.2.17
       env:
           cache-name: ${{ runner.os }}-qt-cache-cmake-build
       with:
@@ -186,7 +186,7 @@ jobs:
             ${{ env.cache-name }}- 
 
     - name: Cache CMake Build
-      uses: hendrikmuhs/ccache-action@v1.2.14
+      uses: hendrikmuhs/ccache-action@v1.2.17
       env:
           cache-name: ${{runner.os}}-sdl-cache-cmake-build
       with:
@@ -228,7 +228,7 @@ jobs:
     - name: Setup Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: 6.7.3
+        version: 6.9.0
         host: mac
         target: desktop
         arch: clang_64
@@ -247,7 +247,7 @@ jobs:
             ${{ env.cache-name }}- 
 
     - name: Cache CMake Build
-      uses: hendrikmuhs/ccache-action@v1.2.14
+      uses: hendrikmuhs/ccache-action@v1.2.17
       env:
           cache-name: ${{runner.os}}-qt-cache-cmake-build
       with:
@@ -296,7 +296,7 @@ jobs:
             ${{ env.cache-name }}- 
 
     - name: Cache CMake Build
-      uses: hendrikmuhs/ccache-action@v1.2.14
+      uses: hendrikmuhs/ccache-action@v1.2.17
       env:
           cache-name: ${{ runner.os }}-sdl-cache-cmake-build
       with:
@@ -352,7 +352,7 @@ jobs:
             ${{ env.cache-name }}- 
 
     - name: Cache CMake Build
-      uses: hendrikmuhs/ccache-action@v1.2.14
+      uses: hendrikmuhs/ccache-action@v1.2.17
       env:
           cache-name: ${{ runner.os }}-qt-cache-cmake-build
       with:
@@ -399,7 +399,7 @@ jobs:
             ${{ env.cache-name }}- 
 
     - name: Cache CMake Build
-      uses: hendrikmuhs/ccache-action@v1.2.14
+      uses: hendrikmuhs/ccache-action@v1.2.17
       env:
           cache-name: ${{ runner.os }}-sdl-gcc-cache-cmake-build
       with:
@@ -435,7 +435,7 @@ jobs:
             ${{ env.cache-name }}- 
 
     - name: Cache CMake Build
-      uses: hendrikmuhs/ccache-action@v1.2.14
+      uses: hendrikmuhs/ccache-action@v1.2.17
       env:
           cache-name: ${{ runner.os }}-qt-gcc-cache-cmake-build
       with:

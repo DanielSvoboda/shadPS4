@@ -25,11 +25,13 @@ struct Profile {
     bool support_legacy_vertex_attributes{};
     bool supports_image_load_store_lod{};
     bool supports_native_cube_calc{};
+    bool supports_robust_buffer_access{};
     bool has_broken_spirv_clamp{};
     bool lower_left_origin_mode{};
     bool needs_manual_interpolation{};
     bool needs_lds_barriers{};
     u64 min_ssbo_alignment{};
+    u64 max_ubo_size{};
     u32 max_viewport_width{};
     u32 max_viewport_height{};
     u32 max_shared_memory_size{};
