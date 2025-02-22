@@ -19,6 +19,20 @@
 
 namespace Vulkan {
 
+static Shader::PushData MakeUserData(const AmdGpu::Liverpool::Regs& regs) {
+    Shader::PushData push_data{};
+    push_data.step0 = regs.vgt_instance_step_rate_0;
+    push_data.step1 = regs.vgt_instance_step_rate_1;
+
+    // TODO(roamic): Add support for multiple viewports and geometry shaders when ViewportIndex
+    // is encountered and implemented in the recompiler.
+    push_data.xoffset = regs.viewport_control.xoffset_enable ? regs.viewports[0].xoffset : 0.f;
+    push_data.xscale = regs.viewport_control.xscale_enable ? regs.viewports[0].xscale : 1.f;
+    push_data.yoffset = regs.viewport_control.yoffset_enable ? regs.viewports[0].yoffset : 0.f;
+    push_data.yscale = regs.viewport_control.yscale_enable ? regs.viewports[0].yscale : 1.f;
+    return push_data;
+}
+
 Rasterizer::Rasterizer(const Instance& instance_, Scheduler& scheduler_,
                        AmdGpu::Liverpool* liverpool_)
     : instance{instance_}, scheduler{scheduler_}, page_manager{this},
@@ -175,7 +189,7 @@ RenderState Rasterizer::PrepareRenderState(u32 mrt_mask) {
         const bool is_depth_clear = regs.depth_render_control.depth_clear_enable ||
                                     texture_cache.IsMetaCleared(htile_address, slice);
         const bool is_stencil_clear = regs.depth_render_control.stencil_clear_enable;
-        ASSERT(desc.view_info.range.extent.layers == 1);
+        ASSERT(desc.view_info.range.extent.levels == 1);
 
         state.width = std::min<u32>(state.width, image.info.size.width);
         state.height = std::min<u32>(state.height, image.info.size.height);
@@ -426,181 +440,124 @@ void Rasterizer::Finish() {
 }
 
 bool Rasterizer::BindResources(const Pipeline* pipeline) {
-    buffer_infos.clear();
-    buffer_views.clear();
-    image_infos.clear();
-
-    const auto& regs = liverpool->regs;
-
-    if (pipeline->IsCompute()) {
-        const auto& info = pipeline->GetStage(Shader::LogicalStage::Compute);
-
-        // Most of the time when a metadata is updated with a shader it gets cleared. It means
-        // we can skip the whole dispatch and update the tracked state instead. Also, it is not
-        // intended to be consumed and in such rare cases (e.g. HTile introspection, CRAA) we
-        // will need its full emulation anyways. For cases of metadata read a warning will be
-        // logged.
-        const auto IsMetaUpdate = [&](const auto& desc) {
-            const auto sharp = desc.GetSharp(info);
-            const VAddr address = sharp.base_address;
-            if (desc.is_written) {
-                // Assume all slices were updates
-                if (texture_cache.ClearMeta(address)) {
-                    LOG_TRACE(Render_Vulkan, "Metadata update skipped");
-                    return true;
-                }
-            } else {
-                if (texture_cache.IsMeta(address)) {
-                    LOG_WARNING(Render_Vulkan, "Unexpected metadata read by a CS shader (buffer)");
-                }
-            }
-            return false;
-        };
-
-        // Assume if a shader reads and writes metas at the same time, it is a copy shader.
-        bool meta_read = false;
-        for (const auto& desc : info.buffers) {
-            if (desc.is_gds_buffer) {
-                continue;
-            }
-            if (!desc.is_written) {
-                const VAddr address = desc.GetSharp(info).base_address;
-                meta_read = texture_cache.IsMeta(address);
-            }
-        }
-
-        for (const auto& desc : info.texture_buffers) {
-            if (!desc.is_written) {
-                const VAddr address = desc.GetSharp(info).base_address;
-                meta_read = texture_cache.IsMeta(address);
-            }
-        }
-
-        if (!meta_read) {
-            for (const auto& desc : info.buffers) {
-                if (IsMetaUpdate(desc)) {
-                    return false;
-                }
-            }
-
-            for (const auto& desc : info.texture_buffers) {
-                if (IsMetaUpdate(desc)) {
-                    return false;
-                }
-            }
-        }
+    if (IsComputeMetaClear(pipeline)) {
+        return false;
     }
 
     set_writes.clear();
     buffer_barriers.clear();
+    buffer_infos.clear();
+    image_infos.clear();
 
     // Bind resource buffers and textures.
-    Shader::PushData push_data{};
     Shader::Backend::Bindings binding{};
-
+    Shader::PushData push_data = MakeUserData(liverpool->regs);
     for (const auto* stage : pipeline->GetStages()) {
         if (!stage) {
             continue;
         }
-        push_data.step0 = regs.vgt_instance_step_rate_0;
-        push_data.step1 = regs.vgt_instance_step_rate_1;
-
-        // TODO(roamic): add support for multiple viewports and geometry shaders when ViewportIndex
-        // is encountered and implemented in the recompiler.
-        if (stage->stage == Shader::Stage::Vertex) {
-            push_data.xoffset =
-                regs.viewport_control.xoffset_enable ? regs.viewports[0].xoffset : 0.f;
-            push_data.xscale = regs.viewport_control.xscale_enable ? regs.viewports[0].xscale : 1.f;
-            push_data.yoffset =
-                regs.viewport_control.yoffset_enable ? regs.viewports[0].yoffset : 0.f;
-            push_data.yscale = regs.viewport_control.yscale_enable ? regs.viewports[0].yscale : 1.f;
-        }
         stage->PushUd(binding, push_data);
-
-        BindBuffers(*stage, binding, push_data, set_writes, buffer_barriers);
-        BindTextures(*stage, binding, set_writes);
+        BindBuffers(*stage, binding, push_data);
+        BindTextures(*stage, binding);
     }
 
     pipeline->BindResources(set_writes, buffer_barriers, push_data);
-
     return true;
 }
 
+bool Rasterizer::IsComputeMetaClear(const Pipeline* pipeline) {
+    if (!pipeline->IsCompute()) {
+        return false;
+    }
+
+    const auto& info = pipeline->GetStage(Shader::LogicalStage::Compute);
+
+    // Assume if a shader reads and writes metas at the same time, it is a copy shader.
+    for (const auto& desc : info.buffers) {
+        const VAddr address = desc.GetSharp(info).base_address;
+        if (!desc.IsSpecial() && !desc.is_written && texture_cache.IsMeta(address)) {
+            return false;
+        }
+    }
+
+    // Most of the time when a metadata is updated with a shader it gets cleared. It means
+    // we can skip the whole dispatch and update the tracked state instead. Also, it is not
+    // intended to be consumed and in such rare cases (e.g. HTile introspection, CRAA) we
+    // will need its full emulation anyways.
+    for (const auto& desc : info.buffers) {
+        const VAddr address = desc.GetSharp(info).base_address;
+        if (!desc.IsSpecial() && desc.is_written && texture_cache.ClearMeta(address)) {
+            // Assume all slices were updates
+            LOG_TRACE(Render_Vulkan, "Metadata update skipped");
+            return true;
+        }
+    }
+    return false;
+}
+
 void Rasterizer::BindBuffers(const Shader::Info& stage, Shader::Backend::Bindings& binding,
-                             Shader::PushData& push_data, Pipeline::DescriptorWrites& set_writes,
-                             Pipeline::BufferBarriers& buffer_barriers) {
+                             Shader::PushData& push_data) {
     buffer_bindings.clear();
 
     for (const auto& desc : stage.buffers) {
         const auto vsharp = desc.GetSharp(stage);
-        if (!desc.is_gds_buffer && vsharp.base_address != 0 && vsharp.GetSize() > 0) {
-            const auto buffer_id = buffer_cache.FindBuffer(vsharp.base_address, vsharp.GetSize());
-            buffer_bindings.emplace_back(buffer_id, vsharp);
+        if (!desc.IsSpecial() && vsharp.base_address != 0 && vsharp.GetSize() > 0) {
+            const u64 size = memory->ClampRangeSize(vsharp.base_address, vsharp.GetSize());
+            const auto buffer_id = buffer_cache.FindBuffer(vsharp.base_address, size);
+            buffer_bindings.emplace_back(buffer_id, vsharp, size);
         } else {
-            buffer_bindings.emplace_back(VideoCore::BufferId{}, vsharp);
+            buffer_bindings.emplace_back(VideoCore::BufferId{}, vsharp, 0);
         }
-    }
-
-    texbuffer_bindings.clear();
-
-    for (const auto& desc : stage.texture_buffers) {
-        const auto vsharp = desc.GetSharp(stage);
-        if (vsharp.base_address != 0 && vsharp.GetSize() > 0 &&
-            vsharp.GetDataFmt() != AmdGpu::DataFormat::FormatInvalid) {
-            const auto buffer_id = buffer_cache.FindBuffer(vsharp.base_address, vsharp.GetSize());
-            texbuffer_bindings.emplace_back(buffer_id, vsharp);
-        } else {
-            texbuffer_bindings.emplace_back(VideoCore::BufferId{}, vsharp);
-        }
-    }
-
-    // Bind the flattened user data buffer as a UBO so it's accessible to the shader
-    if (stage.has_readconst) {
-        const auto [vk_buffer, offset] = buffer_cache.ObtainHostUBO(stage.flattened_ud_buf);
-        buffer_infos.emplace_back(vk_buffer->Handle(), offset,
-                                  stage.flattened_ud_buf.size() * sizeof(u32));
-        set_writes.push_back({
-            .dstSet = VK_NULL_HANDLE,
-            .dstBinding = binding.unified++,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = vk::DescriptorType::eUniformBuffer,
-            .pBufferInfo = &buffer_infos.back(),
-        });
-        ++binding.buffer;
     }
 
     // Second pass to re-bind buffers that were updated after binding
-    auto& null_buffer = buffer_cache.GetBuffer(VideoCore::NULL_BUFFER_ID);
     for (u32 i = 0; i < buffer_bindings.size(); i++) {
-        const auto& [buffer_id, vsharp] = buffer_bindings[i];
+        const auto& [buffer_id, vsharp, size] = buffer_bindings[i];
         const auto& desc = stage.buffers[i];
-        const bool is_storage = desc.IsStorage(vsharp);
+        const bool is_storage = desc.IsStorage(vsharp, pipeline_cache.GetProfile());
+        // Buffer is not from the cache, either a special buffer or unbound.
         if (!buffer_id) {
-            if (desc.is_gds_buffer) {
+            if (desc.buffer_type == Shader::BufferType::GdsBuffer) {
                 const auto* gds_buf = buffer_cache.GetGdsBuffer();
                 buffer_infos.emplace_back(gds_buf->Handle(), 0, gds_buf->SizeBytes());
+            } else if (desc.buffer_type == Shader::BufferType::ReadConstUbo) {
+                auto& vk_buffer = buffer_cache.GetStreamBuffer();
+                const u32 ubo_size = stage.flattened_ud_buf.size() * sizeof(u32);
+                const u64 offset = vk_buffer.Copy(stage.flattened_ud_buf.data(), ubo_size,
+                                                  instance.UniformMinAlignment());
+                buffer_infos.emplace_back(vk_buffer.Handle(), offset, ubo_size);
+            } else if (desc.buffer_type == Shader::BufferType::SharedMemory) {
+                auto& lds_buffer = buffer_cache.GetStreamBuffer();
+                const auto& cs_program = liverpool->GetCsRegs();
+                const auto lds_size = cs_program.SharedMemSize() * cs_program.NumWorkgroups();
+                const auto [data, offset] =
+                    lds_buffer.Map(lds_size, instance.StorageMinAlignment());
+                std::memset(data, 0, lds_size);
+                buffer_infos.emplace_back(lds_buffer.Handle(), offset, lds_size);
             } else if (instance.IsNullDescriptorSupported()) {
                 buffer_infos.emplace_back(VK_NULL_HANDLE, 0, VK_WHOLE_SIZE);
             } else {
+                auto& null_buffer = buffer_cache.GetBuffer(VideoCore::NULL_BUFFER_ID);
                 buffer_infos.emplace_back(null_buffer.Handle(), 0, VK_WHOLE_SIZE);
             }
         } else {
             const auto [vk_buffer, offset] = buffer_cache.ObtainBuffer(
-                vsharp.base_address, vsharp.GetSize(), desc.is_written, false, buffer_id);
+                vsharp.base_address, size, desc.is_written, desc.is_formatted, buffer_id);
             const u32 alignment =
                 is_storage ? instance.StorageMinAlignment() : instance.UniformMinAlignment();
             const u32 offset_aligned = Common::AlignDown(offset, alignment);
             const u32 adjust = offset - offset_aligned;
             ASSERT(adjust % 4 == 0);
             push_data.AddOffset(binding.buffer, adjust);
-            buffer_infos.emplace_back(vk_buffer->Handle(), offset_aligned,
-                                      vsharp.GetSize() + adjust);
+            buffer_infos.emplace_back(vk_buffer->Handle(), offset_aligned, size + adjust);
             if (auto barrier =
                     vk_buffer->GetBarrier(desc.is_written ? vk::AccessFlagBits2::eShaderWrite
                                                           : vk::AccessFlagBits2::eShaderRead,
                                           vk::PipelineStageFlagBits2::eAllCommands)) {
                 buffer_barriers.emplace_back(*barrier);
+            }
+            if (desc.is_written && desc.is_formatted) {
+                texture_cache.InvalidateMemoryFromGPU(vsharp.base_address, size);
             }
         }
 
@@ -615,60 +572,9 @@ void Rasterizer::BindBuffers(const Shader::Info& stage, Shader::Backend::Binding
         });
         ++binding.buffer;
     }
-
-    for (u32 i = 0; i < texbuffer_bindings.size(); i++) {
-        const auto& [buffer_id, vsharp] = texbuffer_bindings[i];
-        const auto& desc = stage.texture_buffers[i];
-        // Fallback format for null buffer view; never used in valid buffer case.
-        const auto data_fmt = vsharp.GetDataFmt() != AmdGpu::DataFormat::FormatInvalid
-                                  ? vsharp.GetDataFmt()
-                                  : AmdGpu::DataFormat::Format8;
-        const u32 fmt_stride = AmdGpu::NumBits(data_fmt) >> 3;
-        vk::BufferView buffer_view;
-        if (buffer_id) {
-            const u32 alignment = instance.TexelBufferMinAlignment();
-            const auto [vk_buffer, offset] = buffer_cache.ObtainBuffer(
-                vsharp.base_address, vsharp.GetSize(), desc.is_written, true, buffer_id);
-            const u32 buf_stride = vsharp.GetStride();
-            ASSERT_MSG(buf_stride % fmt_stride == 0,
-                       "Texel buffer stride must match format stride");
-            const u32 offset_aligned = Common::AlignDown(offset, alignment);
-            const u32 adjust = offset - offset_aligned;
-            ASSERT(adjust % fmt_stride == 0);
-            push_data.AddTexelOffset(binding.buffer, buf_stride / fmt_stride, adjust / fmt_stride);
-            buffer_view = vk_buffer->View(offset_aligned, vsharp.GetSize() + adjust,
-                                          desc.is_written, data_fmt, vsharp.GetNumberFmt());
-            if (auto barrier =
-                    vk_buffer->GetBarrier(desc.is_written ? vk::AccessFlagBits2::eShaderWrite
-                                                          : vk::AccessFlagBits2::eShaderRead,
-                                          vk::PipelineStageFlagBits2::eAllCommands)) {
-                buffer_barriers.emplace_back(*barrier);
-            }
-            if (desc.is_written) {
-                texture_cache.InvalidateMemoryFromGPU(vsharp.base_address, vsharp.GetSize());
-            }
-        } else if (instance.IsNullDescriptorSupported()) {
-            buffer_view = VK_NULL_HANDLE;
-        } else {
-            buffer_view =
-                null_buffer.View(0, fmt_stride, desc.is_written, data_fmt, vsharp.GetNumberFmt());
-        }
-
-        set_writes.push_back({
-            .dstSet = VK_NULL_HANDLE,
-            .dstBinding = binding.unified++,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = desc.is_written ? vk::DescriptorType::eStorageTexelBuffer
-                                              : vk::DescriptorType::eUniformTexelBuffer,
-            .pTexelBufferView = &buffer_views.emplace_back(buffer_view),
-        });
-        ++binding.buffer;
-    }
 }
 
-void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindings& binding,
-                              Pipeline::DescriptorWrites& set_writes) {
+void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindings& binding) {
     image_bindings.clear();
 
     for (const auto& image_desc : stage.images) {
@@ -1047,14 +953,8 @@ void Rasterizer::UpdateDynamicState(const GraphicsPipeline& pipeline) {
     const auto cmdbuf = scheduler.CommandBuffer();
     cmdbuf.setBlendConstants(&regs.blend_constants.red);
 
-    if (instance.IsColorWriteEnableSupported()) {
-        const auto& write_masks = pipeline.GetWriteMasks();
-        std::array<vk::Bool32, Liverpool::NumColorBuffers> write_ens{};
-        std::transform(write_masks.cbegin(), write_masks.cend(), write_ens.begin(),
-                       [](auto in) { return in ? vk::True : vk::False; });
-
-        cmdbuf.setColorWriteEnableEXT(write_ens);
-        cmdbuf.setColorWriteMaskEXT(0, write_masks);
+    if (instance.IsDynamicColorWriteMaskSupported()) {
+        cmdbuf.setColorWriteMaskEXT(0, pipeline.GetWriteMasks());
     }
     if (regs.depth_control.depth_bounds_enable) {
         cmdbuf.setDepthBounds(regs.depth_bounds_min, regs.depth_bounds_max);
@@ -1155,12 +1055,10 @@ void Rasterizer::UpdateViewportScissorState(const GraphicsPipeline& pipeline) {
 
     const auto& vp_ctl = regs.viewport_control;
     const float reduce_z =
-        instance.IsDepthClipControlSupported() &&
-                regs.clipper_control.clip_space == AmdGpu::Liverpool::ClipSpace::MinusWToW
-            ? 1.0f
-            : 0.0f;
+        regs.clipper_control.clip_space == AmdGpu::Liverpool::ClipSpace::MinusWToW ? 1.0f : 0.0f;
 
-    if (regs.polygon_control.enable_window_offset) {
+    if (regs.polygon_control.enable_window_offset &&
+        (regs.window_offset.window_x_offset != 0 || regs.window_offset.window_y_offset != 0)) {
         LOG_ERROR(Render_Vulkan,
                   "PA_SU_SC_MODE_CNTL.VTX_WINDOW_OFFSET_ENABLE support is not yet implemented.");
     }
@@ -1242,8 +1140,8 @@ void Rasterizer::UpdateViewportScissorState(const GraphicsPipeline& pipeline) {
 }
 
 void Rasterizer::ScopeMarkerBegin(const std::string_view& str, bool from_guest) {
-    if ((from_guest && !Config::vkGuestMarkersEnabled()) ||
-        (!from_guest && !Config::vkHostMarkersEnabled())) {
+    if ((from_guest && !Config::getVkGuestMarkersEnabled()) ||
+        (!from_guest && !Config::getVkHostMarkersEnabled())) {
         return;
     }
     const auto cmdbuf = scheduler.CommandBuffer();
@@ -1253,8 +1151,8 @@ void Rasterizer::ScopeMarkerBegin(const std::string_view& str, bool from_guest) 
 }
 
 void Rasterizer::ScopeMarkerEnd(bool from_guest) {
-    if ((from_guest && !Config::vkGuestMarkersEnabled()) ||
-        (!from_guest && !Config::vkHostMarkersEnabled())) {
+    if ((from_guest && !Config::getVkGuestMarkersEnabled()) ||
+        (!from_guest && !Config::getVkHostMarkersEnabled())) {
         return;
     }
     const auto cmdbuf = scheduler.CommandBuffer();
@@ -1262,8 +1160,8 @@ void Rasterizer::ScopeMarkerEnd(bool from_guest) {
 }
 
 void Rasterizer::ScopedMarkerInsert(const std::string_view& str, bool from_guest) {
-    if ((from_guest && !Config::vkGuestMarkersEnabled()) ||
-        (!from_guest && !Config::vkHostMarkersEnabled())) {
+    if ((from_guest && !Config::getVkGuestMarkersEnabled()) ||
+        (!from_guest && !Config::getVkHostMarkersEnabled())) {
         return;
     }
     const auto cmdbuf = scheduler.CommandBuffer();
@@ -1274,8 +1172,8 @@ void Rasterizer::ScopedMarkerInsert(const std::string_view& str, bool from_guest
 
 void Rasterizer::ScopedMarkerInsertColor(const std::string_view& str, const u32 color,
                                          bool from_guest) {
-    if ((from_guest && !Config::vkGuestMarkersEnabled()) ||
-        (!from_guest && !Config::vkHostMarkersEnabled())) {
+    if ((from_guest && !Config::getVkGuestMarkersEnabled()) ||
+        (!from_guest && !Config::getVkHostMarkersEnabled())) {
         return;
     }
     const auto cmdbuf = scheduler.CommandBuffer();

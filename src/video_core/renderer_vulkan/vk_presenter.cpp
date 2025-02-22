@@ -294,7 +294,7 @@ void Presenter::CreatePostProcessPipeline() {
 Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_)
     : window{window_}, liverpool{liverpool_},
       instance{window, Config::getGpuId(), Config::vkValidationEnabled(),
-               Config::vkCrashDiagnosticEnabled()},
+               Config::getVkCrashDiagnosticEnabled()},
       draw_scheduler{instance}, present_scheduler{instance}, flip_scheduler{instance},
       swapchain{instance, window},
       rasterizer{std::make_unique<Rasterizer>(instance, draw_scheduler, liverpool)},
@@ -397,6 +397,7 @@ void Presenter::RecreateFrame(Frame* frame, u32 width, u32 height) {
     frame->height = height;
 
     frame->imgui_texture = ImGui::Vulkan::AddTexture(view, vk::ImageLayout::eShaderReadOnlyOptimal);
+    frame->is_hdr = swapchain.GetHDR();
 }
 
 Frame* Presenter::PrepareLastFrame() {
@@ -467,7 +468,7 @@ bool Presenter::ShowSplash(Frame* frame /*= nullptr*/) {
     draw_scheduler.EndRendering();
     const auto cmdbuf = draw_scheduler.CommandBuffer();
 
-    if (Config::vkHostMarkersEnabled()) {
+    if (Config::getVkHostMarkersEnabled()) {
         cmdbuf.beginDebugUtilsLabelEXT(vk::DebugUtilsLabelEXT{
             .pLabelName = "ShowSplash",
         });
@@ -541,7 +542,7 @@ bool Presenter::ShowSplash(Frame* frame /*= nullptr*/) {
         .pImageMemoryBarriers = &post_barrier,
     });
 
-    if (Config::vkHostMarkersEnabled()) {
+    if (Config::getVkHostMarkersEnabled()) {
         cmdbuf.endDebugUtilsLabelEXT();
     }
 
@@ -562,7 +563,8 @@ Frame* Presenter::PrepareFrameInternal(VideoCore::ImageId image_id, bool is_eop)
     if (image_id != VideoCore::NULL_IMAGE_ID) {
         const auto& image = texture_cache.GetImage(image_id);
         const auto extent = image.info.size;
-        if (frame->width != extent.width || frame->height != extent.height) {
+        if (frame->width != extent.width || frame->height != extent.height ||
+            frame->is_hdr != swapchain.GetHDR()) {
             RecreateFrame(frame, extent.width, extent.height);
         }
     }
@@ -573,7 +575,7 @@ Frame* Presenter::PrepareFrameInternal(VideoCore::ImageId image_id, bool is_eop)
     auto& scheduler = is_eop ? draw_scheduler : flip_scheduler;
     scheduler.EndRendering();
     const auto cmdbuf = scheduler.CommandBuffer();
-    if (Config::vkHostMarkersEnabled()) {
+    if (Config::getVkHostMarkersEnabled()) {
         const auto label = fmt::format("PrepareFrameInternal:{}", image_id.index);
         cmdbuf.beginDebugUtilsLabelEXT(vk::DebugUtilsLabelEXT{
             .pLabelName = label.c_str(),
@@ -704,7 +706,7 @@ Frame* Presenter::PrepareFrameInternal(VideoCore::ImageId image_id, bool is_eop)
         .pImageMemoryBarriers = &post_barrier,
     });
 
-    if (Config::vkHostMarkersEnabled()) {
+    if (Config::getVkHostMarkersEnabled()) {
         cmdbuf.endDebugUtilsLabelEXT();
     }
 
@@ -755,7 +757,7 @@ void Presenter::Present(Frame* frame, bool is_reusing_frame) {
     auto& scheduler = present_scheduler;
     const auto cmdbuf = scheduler.CommandBuffer();
 
-    if (Config::vkHostMarkersEnabled()) {
+    if (Config::getVkHostMarkersEnabled()) {
         cmdbuf.beginDebugUtilsLabelEXT(vk::DebugUtilsLabelEXT{
             .pLabelName = "Present",
         });
@@ -857,7 +859,7 @@ void Presenter::Present(Frame* frame, bool is_reusing_frame) {
         }
     }
 
-    if (Config::vkHostMarkersEnabled()) {
+    if (Config::getVkHostMarkersEnabled()) {
         cmdbuf.endDebugUtilsLabelEXT();
     }
 
@@ -913,8 +915,8 @@ Frame* Presenter::GetRenderFrame() {
     }
 
     // Initialize default frame image
-    if (frame->width == 0 || frame->height == 0) {
-        RecreateFrame(frame, 1920, 1080);
+    if (frame->width == 0 || frame->height == 0 || frame->is_hdr != swapchain.GetHDR()) {
+        RecreateFrame(frame, Config::getScreenWidth(), Config::getScreenHeight());
     }
 
     return frame;
