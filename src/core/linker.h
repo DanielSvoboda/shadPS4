@@ -83,7 +83,10 @@ public:
     }
 
     Module* GetModule(s32 index) const {
-        return m_modules.at(index).get();
+        if (index >= 0 || index < m_modules.size()) {
+            return m_modules.at(index).get();
+        }
+        return nullptr;
     }
 
     u32 FindByName(const std::filesystem::path& name) const {
@@ -109,10 +112,13 @@ public:
 
     void RelocateAnyImports(Module* m) {
         Relocate(m);
-        for (auto& module : m_modules) {
-            const auto imports = module->GetImportModules();
-            if (std::ranges::contains(imports, m->name, &ModuleInfo::name)) {
-                Relocate(module.get());
+        const auto exports = m->GetExportModules();
+        for (auto& export_mod : exports) {
+            for (auto& module : m_modules) {
+                const auto imports = module->GetImportModules();
+                if (std::ranges::contains(imports, export_mod.name, &ModuleInfo::name)) {
+                    Relocate(module.get());
+                }
             }
         }
     }

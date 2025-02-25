@@ -160,6 +160,10 @@ std::vector<const char*> GetInstanceExtensions(Frontend::WindowSystemType window
         extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
     }
 
+    if (Config::allowHDR()) {
+        extensions.push_back(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
+    }
+
     if (enable_debug_utils) {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
@@ -274,6 +278,7 @@ vk::UniqueInstance CreateInstance(Frontend::WindowSystemType window_type, bool e
     vk::Bool32 enable_force_barriers = vk::True;
 #ifdef __APPLE__
     const vk::Bool32 mvk_debug_mode = enable_crash_diagnostic ? vk::True : vk::False;
+    constexpr vk::Bool32 mvk_use_mtlheap = vk::True;
 #endif
 
     const std::array layer_setings = {
@@ -349,7 +354,16 @@ vk::UniqueInstance CreateInstance(Frontend::WindowSystemType window_type, bool e
             .type = vk::LayerSettingTypeEXT::eBool32,
             .valueCount = 1,
             .pValues = &mvk_debug_mode,
-        }
+        },
+        // Use MTLHeap to back device memory, which among other things allows us to
+        // use VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT via memory aliasing.
+        vk::LayerSettingEXT{
+            .pLayerName = "MoltenVK",
+            .pSettingName = "MVK_CONFIG_USE_MTLHEAP",
+            .type = vk::LayerSettingTypeEXT::eBool32,
+            .valueCount = 1,
+            .pValues = &mvk_use_mtlheap,
+        },
 #endif
     };
 

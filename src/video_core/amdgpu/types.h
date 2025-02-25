@@ -183,7 +183,7 @@ enum class NumberFormat : u32 {
     Ubscaled = 13,
 };
 
-enum class CompSwizzle : u32 {
+enum class CompSwizzle : u8 {
     Zero = 0,
     One = 1,
     Red = 4,
@@ -193,10 +193,10 @@ enum class CompSwizzle : u32 {
 };
 
 enum class NumberConversion : u32 {
-    None,
-    UintToUscaled,
-    SintToSscaled,
-    UnormToUbnorm,
+    None = 0,
+    UintToUscaled = 1,
+    SintToSscaled = 2,
+    UnormToUbnorm = 3,
 };
 
 struct CompMapping {
@@ -262,6 +262,13 @@ private:
     }
 };
 
+static constexpr CompMapping IdentityMapping = {
+    .r = CompSwizzle::Red,
+    .g = CompSwizzle::Green,
+    .b = CompSwizzle::Blue,
+    .a = CompSwizzle::Alpha,
+};
+
 inline DataFormat RemapDataFormat(const DataFormat format) {
     switch (format) {
     case DataFormat::Format11_11_10:
@@ -298,6 +305,7 @@ inline NumberFormat RemapNumberFormat(const NumberFormat format, const DataForma
 
 inline CompMapping RemapSwizzle(const DataFormat format, const CompMapping swizzle) {
     switch (format) {
+    case DataFormat::Format1_5_5_5:
     case DataFormat::Format11_11_10: {
         CompMapping result;
         result.r = swizzle.b;
@@ -314,12 +322,13 @@ inline CompMapping RemapSwizzle(const DataFormat format, const CompMapping swizz
         result.a = swizzle.r;
         return result;
     }
-    case DataFormat::Format1_5_5_5: {
+    case DataFormat::Format4_4_4_4: {
+        // Remap to a more supported component order.
         CompMapping result;
-        result.r = swizzle.b;
-        result.g = swizzle.g;
-        result.b = swizzle.r;
-        result.a = swizzle.a;
+        result.r = swizzle.g;
+        result.g = swizzle.b;
+        result.b = swizzle.a;
+        result.a = swizzle.r;
         return result;
     }
     default:

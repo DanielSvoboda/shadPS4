@@ -242,15 +242,18 @@ void SetupCapabilities(const Info& info, const Profile& profile, EmitContext& ct
     ctx.AddCapability(spv::Capability::Image1D);
     ctx.AddCapability(spv::Capability::Sampled1D);
     ctx.AddCapability(spv::Capability::ImageQuery);
+    ctx.AddCapability(spv::Capability::Int8);
+    ctx.AddCapability(spv::Capability::Int16);
+    ctx.AddCapability(spv::Capability::Int64);
+    ctx.AddCapability(spv::Capability::UniformAndStorageBuffer8BitAccess);
+    ctx.AddCapability(spv::Capability::UniformAndStorageBuffer16BitAccess);
     if (info.uses_fp16) {
         ctx.AddCapability(spv::Capability::Float16);
-        ctx.AddCapability(spv::Capability::Int16);
     }
     if (info.uses_fp64) {
         ctx.AddCapability(spv::Capability::Float64);
     }
-    ctx.AddCapability(spv::Capability::Int64);
-    if (info.has_storage_images || info.has_image_buffers) {
+    if (info.has_storage_images) {
         ctx.AddCapability(spv::Capability::StorageImageExtendedFormats);
         ctx.AddCapability(spv::Capability::StorageImageReadWithoutFormat);
         ctx.AddCapability(spv::Capability::StorageImageWriteWithoutFormat);
@@ -258,12 +261,6 @@ void SetupCapabilities(const Info& info, const Profile& profile, EmitContext& ct
             ctx.AddExtension("SPV_AMD_shader_image_load_store_lod");
             ctx.AddCapability(spv::Capability::ImageReadWriteLodAMD);
         }
-    }
-    if (info.has_texel_buffers) {
-        ctx.AddCapability(spv::Capability::SampledBuffer);
-    }
-    if (info.has_image_buffers) {
-        ctx.AddCapability(spv::Capability::ImageBuffer);
     }
     if (info.has_image_gather) {
         ctx.AddCapability(spv::Capability::ImageGatherExtended);
@@ -372,7 +369,12 @@ void SetupFloatMode(EmitContext& ctx, const Profile& profile, const RuntimeInfo&
         LOG_WARNING(Render_Vulkan, "Unknown FP denorm mode {}", u32(fp_denorm_mode));
     }
     const auto fp_round_mode = runtime_info.fp_round_mode32;
-    if (fp_round_mode != AmdGpu::FpRoundMode::NearestEven) {
+    if (fp_round_mode == AmdGpu::FpRoundMode::ToZero) {
+        if (profile.support_fp32_round_to_zero) {
+            ctx.AddCapability(spv::Capability::RoundingModeRTZ);
+            ctx.AddExecutionMode(main_func, spv::ExecutionMode::RoundingModeRTZ, 32U);
+        }
+    } else if (fp_round_mode != AmdGpu::FpRoundMode::NearestEven) {
         LOG_WARNING(Render_Vulkan, "Unknown FP rounding mode {}", u32(fp_round_mode));
     }
 }

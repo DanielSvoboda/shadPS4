@@ -32,8 +32,6 @@ std::filesystem::path find_fs_path_or(const basic_value<TC>& v, const K& ky,
 namespace Config {
 
 static bool isNeo = false;
-static bool isFullscreen = false;
-static std::string fullscreenMode = "borderless";
 static bool playBGM = false;
 static bool isTrophyPopupDisabled = false;
 static int BGMvolume = 50;
@@ -46,8 +44,6 @@ static std::string logType = "async";
 static std::string userName = "shadPS4";
 static std::string updateChannel;
 static std::string chooseHomeTab;
-static u16 deadZoneLeft = 2.0;
-static u16 deadZoneRight = 2.0;
 static std::string backButtonBehavior = "left";
 static bool useSpecialPad = false;
 static int specialPadClass = 1;
@@ -56,6 +52,7 @@ static bool isDebugDump = false;
 static bool isShaderDebug = false;
 static bool isShowSplash = false;
 static bool isAutoUpdate = false;
+static bool isAlwaysShowChangelog = false;
 static bool isNullGpu = false;
 static bool shouldCopyGPUBuffers = false;
 static bool shouldDumpShaders = false;
@@ -68,8 +65,13 @@ static bool vkCrashDiagnostic = false;
 static bool vkHostMarkers = false;
 static bool vkGuestMarkers = false;
 static bool rdocEnable = false;
+static bool isFpsColor = true;
+static bool isSeparateLogFilesEnabled = false;
 static s16 cursorState = HideCursorState::Idle;
 static int cursorHideTimeout = 5; // 5 seconds (default)
+static bool useUnifiedInputConfig = true;
+static bool overrideControllerColor = false;
+static int controllerCustomColorRGB[3] = {0, 0, 255};
 static bool separateupdatefolder = false;
 static bool compatibilityData = false;
 static bool checkCompatibilityOnStartup = false;
@@ -95,10 +97,45 @@ u32 m_window_size_H = 720;
 std::vector<std::string> m_pkg_viewer;
 std::vector<std::string> m_elf_viewer;
 std::vector<std::string> m_recent_files;
-std::string emulator_language = "en";
+std::string emulator_language = "en_US";
+static int backgroundImageOpacity = 50;
+static bool showBackgroundImage = true;
+static bool isFullscreen = false;
+static std::string fullscreenMode = "Windowed";
+static bool isHDRAllowed = false;
 
 // Language
 u32 m_language = 1; // english
+
+bool allowHDR() {
+    return isHDRAllowed;
+}
+
+bool GetUseUnifiedInputConfig() {
+    return useUnifiedInputConfig;
+}
+
+void SetUseUnifiedInputConfig(bool use) {
+    useUnifiedInputConfig = use;
+}
+
+bool GetOverrideControllerColor() {
+    return overrideControllerColor;
+}
+
+void SetOverrideControllerColor(bool enable) {
+    overrideControllerColor = enable;
+}
+
+int* GetControllerCustomColor() {
+    return controllerCustomColorRGB;
+}
+
+void SetControllerCustomColor(int r, int b, int g) {
+    controllerCustomColorRGB[0] = r;
+    controllerCustomColorRGB[1] = b;
+    controllerCustomColorRGB[2] = g;
+}
 
 std::string getTrophyKey() {
     return trophyKey;
@@ -149,14 +186,6 @@ int getBGMvolume() {
 
 bool getEnableDiscordRPC() {
     return enableDiscordRPC;
-}
-
-u16 leftDeadZone() {
-    return deadZoneLeft;
-}
-
-u16 rightDeadZone() {
-    return deadZoneRight;
 }
 
 s16 getCursorState() {
@@ -231,6 +260,10 @@ bool autoUpdate() {
     return isAutoUpdate;
 }
 
+bool alwaysShowChangelog() {
+    return isAlwaysShowChangelog;
+}
+
 bool nullGpu() {
     return isNullGpu;
 }
@@ -251,6 +284,10 @@ bool isRdocEnabled() {
     return rdocEnable;
 }
 
+bool fpsColor() {
+    return isFpsColor;
+}
+
 u32 vblankDiv() {
     return vblankDivider;
 }
@@ -267,18 +304,28 @@ bool vkValidationGpuEnabled() {
     return vkValidationGpu;
 }
 
-bool vkCrashDiagnosticEnabled() {
+bool getVkCrashDiagnosticEnabled() {
     return vkCrashDiagnostic;
 }
 
-bool vkHostMarkersEnabled() {
-    // Forced on when crash diagnostic enabled.
-    return vkHostMarkers || vkCrashDiagnostic;
+bool getVkHostMarkersEnabled() {
+    return vkHostMarkers;
 }
 
-bool vkGuestMarkersEnabled() {
-    // Forced on when crash diagnostic enabled.
-    return vkGuestMarkers || vkCrashDiagnostic;
+bool getVkGuestMarkersEnabled() {
+    return vkGuestMarkers;
+}
+
+void setVkCrashDiagnosticEnabled(bool enable) {
+    vkCrashDiagnostic = enable;
+}
+
+void setVkHostMarkersEnabled(bool enable) {
+    vkHostMarkers = enable;
+}
+
+void setVkGuestMarkersEnabled(bool enable) {
+    vkGuestMarkers = enable;
 }
 
 bool getSeparateUpdateEnabled() {
@@ -321,8 +368,16 @@ void setAutoUpdate(bool enable) {
     isAutoUpdate = enable;
 }
 
+void setAlwaysShowChangelog(bool enable) {
+    isAlwaysShowChangelog = enable;
+}
+
 void setNullGpu(bool enable) {
     isNullGpu = enable;
+}
+
+void setAllowHDR(bool enable) {
+    isHDRAllowed = enable;
 }
 
 void setCopyGPUCmdBuffers(bool enable) {
@@ -395,6 +450,10 @@ void setLogType(const std::string& type) {
 
 void setLogFilter(const std::string& type) {
     logFilter = type;
+}
+
+void setSeparateLogFilesEnabled(bool enabled) {
+    isSeparateLogFilesEnabled = enabled;
 }
 
 void setUserName(const std::string& type) {
@@ -602,6 +661,26 @@ u32 GetLanguage() {
     return m_language;
 }
 
+bool getSeparateLogFilesEnabled() {
+    return isSeparateLogFilesEnabled;
+}
+
+int getBackgroundImageOpacity() {
+    return backgroundImageOpacity;
+}
+
+void setBackgroundImageOpacity(int opacity) {
+    backgroundImageOpacity = std::clamp(opacity, 0, 100);
+}
+
+bool getShowBackgroundImage() {
+    return showBackgroundImage;
+}
+
+void setShowBackgroundImage(bool show) {
+    showBackgroundImage = show;
+}
+
 void load(const std::filesystem::path& path) {
     // If the configuration file does not exist, create it and return
     std::error_code error;
@@ -625,8 +704,6 @@ void load(const std::filesystem::path& path) {
         const toml::value& general = data.at("General");
 
         isNeo = toml::find_or<bool>(general, "isPS4Pro", false);
-        isFullscreen = toml::find_or<bool>(general, "Fullscreen", false);
-        fullscreenMode = toml::find_or<std::string>(general, "FullscreenMode", "borderless");
         playBGM = toml::find_or<bool>(general, "playBGM", false);
         isTrophyPopupDisabled = toml::find_or<bool>(general, "isTrophyPopupDisabled", false);
         BGMvolume = toml::find_or<int>(general, "BGMvolume", 50);
@@ -641,6 +718,7 @@ void load(const std::filesystem::path& path) {
         }
         isShowSplash = toml::find_or<bool>(general, "showSplash", true);
         isAutoUpdate = toml::find_or<bool>(general, "autoUpdate", false);
+        isAlwaysShowChangelog = toml::find_or<bool>(general, "alwaysShowChangelog", false);
         separateupdatefolder = toml::find_or<bool>(general, "separateUpdateEnabled", false);
         compatibilityData = toml::find_or<bool>(general, "compatibilityEnabled", false);
         checkCompatibilityOnStartup =
@@ -651,14 +729,13 @@ void load(const std::filesystem::path& path) {
     if (data.contains("Input")) {
         const toml::value& input = data.at("Input");
 
-        deadZoneLeft = toml::find_or<float>(input, "deadZoneLeft", 2.0);
-        deadZoneRight = toml::find_or<float>(input, "deadZoneRight", 2.0);
         cursorState = toml::find_or<int>(input, "cursorState", HideCursorState::Idle);
         cursorHideTimeout = toml::find_or<int>(input, "cursorHideTimeout", 5);
         backButtonBehavior = toml::find_or<std::string>(input, "backButtonBehavior", "left");
         useSpecialPad = toml::find_or<bool>(input, "useSpecialPad", false);
         specialPadClass = toml::find_or<int>(input, "specialPadClass", 1);
         isMotionControlsEnabled = toml::find_or<bool>(input, "isMotionControlsEnabled", true);
+        useUnifiedInputConfig = toml::find_or<bool>(input, "useUnifiedInputConfig", true);
     }
 
     if (data.contains("GPU")) {
@@ -671,6 +748,9 @@ void load(const std::filesystem::path& path) {
         shouldDumpShaders = toml::find_or<bool>(gpu, "dumpShaders", false);
         shouldPatchShaders = toml::find_or<bool>(gpu, "patchShaders", true);
         vblankDivider = toml::find_or<int>(gpu, "vblankDivider", 1);
+        isFullscreen = toml::find_or<bool>(gpu, "Fullscreen", false);
+        fullscreenMode = toml::find_or<std::string>(gpu, "FullscreenMode", "Windowed");
+        isHDRAllowed = toml::find_or<bool>(gpu, "allowHDR", false);
     }
 
     if (data.contains("Vulkan")) {
@@ -690,7 +770,9 @@ void load(const std::filesystem::path& path) {
         const toml::value& debug = data.at("Debug");
 
         isDebugDump = toml::find_or<bool>(debug, "DebugDump", false);
+        isSeparateLogFilesEnabled = toml::find_or<bool>(debug, "isSeparateLogFilesEnabled", false);
         isShaderDebug = toml::find_or<bool>(debug, "CollectShader", false);
+        isFpsColor = toml::find_or<bool>(debug, "FPSColor", true);
     }
 
     if (data.contains("GUI")) {
@@ -722,7 +804,9 @@ void load(const std::filesystem::path& path) {
         m_elf_viewer = toml::find_or<std::vector<std::string>>(gui, "elfDirs", {});
         m_recent_files = toml::find_or<std::vector<std::string>>(gui, "recentFiles", {});
         m_table_mode = toml::find_or<int>(gui, "gameTableMode", 0);
-        emulator_language = toml::find_or<std::string>(gui, "emulatorLanguage", "en");
+        emulator_language = toml::find_or<std::string>(gui, "emulatorLanguage", "en_US");
+        backgroundImageOpacity = toml::find_or<int>(gui, "backgroundImageOpacity", 50);
+        showBackgroundImage = toml::find_or<bool>(gui, "showBackgroundImage", true);
     }
 
     if (data.contains("Settings")) {
@@ -735,10 +819,22 @@ void load(const std::filesystem::path& path) {
         const toml::value& keys = data.at("Keys");
         trophyKey = toml::find_or<std::string>(keys, "TrophyKey", "");
     }
+
+    // Check if the loaded language is in the allowed list
+    const std::vector<std::string> allowed_languages = {
+        "ar_SA", "da_DK", "de_DE", "el_GR", "en_US", "es_ES", "fa_IR", "fi_FI", "fr_FR", "hu_HU",
+        "id_ID", "it_IT", "ja_JP", "ko_KR", "lt_LT", "nb_NO", "nl_NL", "pl_PL", "pt_BR", "pt_PT",
+        "ro_RO", "ru_RU", "sq_AL", "sv_SE", "tr_TR", "uk_UA", "vi_VN", "zh_CN", "zh_TW"};
+
+    if (std::find(allowed_languages.begin(), allowed_languages.end(), emulator_language) ==
+        allowed_languages.end()) {
+        emulator_language = "en_US"; // Default to en_US if not in the list
+        save(path);
+    }
 }
 
 void save(const std::filesystem::path& path) {
-    toml::value data;
+    toml::ordered_value data;
 
     std::error_code error;
     if (std::filesystem::exists(path, error)) {
@@ -746,7 +842,8 @@ void save(const std::filesystem::path& path) {
             std::ifstream ifs;
             ifs.exceptions(std::ifstream::failbit | std::ifstream::badbit);
             ifs.open(path, std::ios_base::binary);
-            data = toml::parse(ifs, std::string{fmt::UTF(path.filename().u8string()).data});
+            data = toml::parse<toml::ordered_type_config>(
+                ifs, std::string{fmt::UTF(path.filename().u8string()).data});
         } catch (const std::exception& ex) {
             fmt::print("Exception trying to parse config file. Exception: {}\n", ex.what());
             return;
@@ -759,8 +856,6 @@ void save(const std::filesystem::path& path) {
     }
 
     data["General"]["isPS4Pro"] = isNeo;
-    data["General"]["Fullscreen"] = isFullscreen;
-    data["General"]["FullscreenMode"] = fullscreenMode;
     data["General"]["isTrophyPopupDisabled"] = isTrophyPopupDisabled;
     data["General"]["playBGM"] = playBGM;
     data["General"]["BGMvolume"] = BGMvolume;
@@ -772,17 +867,17 @@ void save(const std::filesystem::path& path) {
     data["General"]["chooseHomeTab"] = chooseHomeTab;
     data["General"]["showSplash"] = isShowSplash;
     data["General"]["autoUpdate"] = isAutoUpdate;
+    data["General"]["alwaysShowChangelog"] = isAlwaysShowChangelog;
     data["General"]["separateUpdateEnabled"] = separateupdatefolder;
     data["General"]["compatibilityEnabled"] = compatibilityData;
     data["General"]["checkCompatibilityOnStartup"] = checkCompatibilityOnStartup;
-    data["Input"]["deadZoneLeft"] = deadZoneLeft;
-    data["Input"]["deadZoneRight"] = deadZoneRight;
     data["Input"]["cursorState"] = cursorState;
     data["Input"]["cursorHideTimeout"] = cursorHideTimeout;
     data["Input"]["backButtonBehavior"] = backButtonBehavior;
     data["Input"]["useSpecialPad"] = useSpecialPad;
     data["Input"]["specialPadClass"] = specialPadClass;
     data["Input"]["isMotionControlsEnabled"] = isMotionControlsEnabled;
+    data["Input"]["useUnifiedInputConfig"] = useUnifiedInputConfig;
     data["GPU"]["screenWidth"] = screenWidth;
     data["GPU"]["screenHeight"] = screenHeight;
     data["GPU"]["nullGpu"] = isNullGpu;
@@ -790,6 +885,9 @@ void save(const std::filesystem::path& path) {
     data["GPU"]["dumpShaders"] = shouldDumpShaders;
     data["GPU"]["patchShaders"] = shouldPatchShaders;
     data["GPU"]["vblankDivider"] = vblankDivider;
+    data["GPU"]["Fullscreen"] = isFullscreen;
+    data["GPU"]["FullscreenMode"] = fullscreenMode;
+    data["GPU"]["allowHDR"] = isHDRAllowed;
     data["Vulkan"]["gpuId"] = gpuId;
     data["Vulkan"]["validation"] = vkValidation;
     data["Vulkan"]["validation_sync"] = vkValidationSync;
@@ -800,6 +898,8 @@ void save(const std::filesystem::path& path) {
     data["Vulkan"]["rdocEnable"] = rdocEnable;
     data["Debug"]["DebugDump"] = isDebugDump;
     data["Debug"]["CollectShader"] = isShaderDebug;
+    data["Debug"]["isSeparateLogFilesEnabled"] = isSeparateLogFilesEnabled;
+    data["Debug"]["FPSColor"] = isFpsColor;
 
     data["Keys"]["TrophyKey"] = trophyKey;
 
@@ -814,6 +914,8 @@ void save(const std::filesystem::path& path) {
     data["GUI"]["addonInstallDir"] =
         std::string{fmt::UTF(settings_addon_install_dir.u8string()).data};
     data["GUI"]["emulatorLanguage"] = emulator_language;
+    data["GUI"]["backgroundImageOpacity"] = backgroundImageOpacity;
+    data["GUI"]["showBackgroundImage"] = showBackgroundImage;
     data["Settings"]["consoleLanguage"] = m_language;
 
     std::ofstream file(path, std::ios::binary);
@@ -823,7 +925,7 @@ void save(const std::filesystem::path& path) {
 }
 
 void saveMainWindow(const std::filesystem::path& path) {
-    toml::value data;
+    toml::ordered_value data;
 
     std::error_code error;
     if (std::filesystem::exists(path, error)) {
@@ -831,7 +933,8 @@ void saveMainWindow(const std::filesystem::path& path) {
             std::ifstream ifs;
             ifs.exceptions(std::ifstream::failbit | std::ifstream::badbit);
             ifs.open(path, std::ios_base::binary);
-            data = toml::parse(ifs, std::string{fmt::UTF(path.filename().u8string()).data});
+            data = toml::parse<toml::ordered_type_config>(
+                ifs, std::string{fmt::UTF(path.filename().u8string()).data});
         } catch (const std::exception& ex) {
             fmt::print("Exception trying to parse config file. Exception: {}\n", ex.what());
             return;
@@ -865,6 +968,7 @@ void saveMainWindow(const std::filesystem::path& path) {
 }
 
 void setDefaultValues() {
+    isHDRAllowed = false;
     isNeo = false;
     isFullscreen = false;
     isTrophyPopupDisabled = false;
@@ -891,6 +995,7 @@ void setDefaultValues() {
     isShaderDebug = false;
     isShowSplash = false;
     isAutoUpdate = false;
+    isAlwaysShowChangelog = false;
     isNullGpu = false;
     shouldDumpShaders = false;
     vblankDivider = 1;
@@ -901,12 +1006,124 @@ void setDefaultValues() {
     vkHostMarkers = false;
     vkGuestMarkers = false;
     rdocEnable = false;
-    emulator_language = "en";
+    emulator_language = "en_US";
     m_language = 1;
     gpuId = -1;
     separateupdatefolder = false;
     compatibilityData = false;
     checkCompatibilityOnStartup = false;
+    backgroundImageOpacity = 50;
+    showBackgroundImage = true;
+}
+
+constexpr std::string_view GetDefaultKeyboardConfig() {
+    return R"(#Feeling lost? Check out the Help section!
+
+# Keyboard bindings
+
+triangle = kp8
+circle = kp6
+cross = kp2
+square = kp4
+# Alternatives for users without a keypad
+triangle = c
+circle = b
+cross = n
+square = v
+
+l1 = q
+r1 = u
+l2 = e
+r2 = o
+l3 = x
+r3 = m
+
+options = enter
+touchpad = space
+
+pad_up = up
+pad_down = down
+pad_left = left
+pad_right = right
+
+axis_left_x_minus = a
+axis_left_x_plus = d
+axis_left_y_minus = w
+axis_left_y_plus = s
+
+axis_right_x_minus = j
+axis_right_x_plus = l
+axis_right_y_minus = i
+axis_right_y_plus = k
+
+# Controller bindings
+
+triangle = triangle
+cross = cross
+square = square
+circle = circle
+
+l1 = l1
+l2 = l2
+l3 = l3
+r1 = r1
+r2 = r2
+r3 = r3
+
+options = options
+touchpad = back
+
+pad_up = pad_up
+pad_down = pad_down
+pad_left = pad_left
+pad_right = pad_right
+
+axis_left_x = axis_left_x
+axis_left_y = axis_left_y
+axis_right_x = axis_right_x
+axis_right_y = axis_right_y
+
+# Range of deadzones: 1 (almost none) to 127 (max)
+analog_deadzone = leftjoystick, 2, 127
+analog_deadzone = rightjoystick, 2, 127
+
+override_controller_color = false, 0, 0, 255
+)";
+}
+std::filesystem::path GetFoolproofKbmConfigFile(const std::string& game_id) {
+    // Read configuration file of the game, and if it doesn't exist, generate it from default
+    // If that doesn't exist either, generate that from getDefaultConfig() and try again
+    // If even the folder is missing, we start with that.
+
+    const auto config_dir = Common::FS::GetUserPath(Common::FS::PathType::UserDir) / "input_config";
+    const auto config_file = config_dir / (game_id + ".ini");
+    const auto default_config_file = config_dir / "default.ini";
+
+    // Ensure the config directory exists
+    if (!std::filesystem::exists(config_dir)) {
+        std::filesystem::create_directories(config_dir);
+    }
+
+    // Check if the default config exists
+    if (!std::filesystem::exists(default_config_file)) {
+        // If the default config is also missing, create it from getDefaultConfig()
+        const auto default_config = GetDefaultKeyboardConfig();
+        std::ofstream default_config_stream(default_config_file);
+        if (default_config_stream) {
+            default_config_stream << default_config;
+        }
+    }
+
+    // if empty, we only need to execute the function up until this point
+    if (game_id.empty()) {
+        return default_config_file;
+    }
+
+    // If game-specific config doesn't exist, create it from the default config
+    if (!std::filesystem::exists(config_file)) {
+        std::filesystem::copy(default_config_file, config_file);
+    }
+    return config_file;
 }
 
 } // namespace Config

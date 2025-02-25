@@ -13,7 +13,6 @@
 namespace Libraries::Kernel {
 
 int PS4_SYSV_ABI sceKernelIsNeoMode() {
-    LOG_DEBUG(Kernel_Sce, "called");
     return Config::isNeoModeConsole() &&
            Common::ElfInfo::Instance().GetPSFAttributes().support_neo_mode;
 }
@@ -76,6 +75,9 @@ s32 PS4_SYSV_ABI sceKernelLoadStartModule(const char* moduleFileName, size_t arg
 s32 PS4_SYSV_ABI sceKernelDlsym(s32 handle, const char* symbol, void** addrp) {
     auto* linker = Common::Singleton<Core::Linker>::Instance();
     auto* module = linker->GetModule(handle);
+    if (module == nullptr) {
+        return ORBIS_KERNEL_ERROR_ESRCH;
+    }
     *addrp = module->FindByName(symbol);
     if (*addrp == nullptr) {
         return ORBIS_KERNEL_ERROR_ESRCH;

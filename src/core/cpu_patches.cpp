@@ -30,16 +30,6 @@
 
 using namespace Xbyak::util;
 
-#define MAYBE_AVX(OPCODE, ...)                                                                     \
-    [&] {                                                                                          \
-        Cpu cpu;                                                                                   \
-        if (cpu.has(Cpu::tAVX)) {                                                                  \
-            c.v##OPCODE(__VA_ARGS__);                                                              \
-        } else {                                                                                   \
-            c.OPCODE(__VA_ARGS__);                                                                 \
-        }                                                                                          \
-    }()
-
 namespace Core {
 
 static Xbyak::Reg ZydisToXbyakRegister(const ZydisRegister reg) {
@@ -235,9 +225,9 @@ static void SaveContext(Xbyak::CodeGenerator& c, bool save_flags = false) {
     for (int reg = Xbyak::Operand::RAX; reg <= Xbyak::Operand::R15; reg++) {
         c.push(Xbyak::Reg64(reg));
     }
-    for (int reg = 0; reg <= 7; reg++) {
-        c.lea(rsp, ptr[rsp - 32]);
-        c.vmovdqu(ptr[rsp], Xbyak::Ymm(reg));
+    c.lea(rsp, ptr[rsp - 32 * 16]);
+    for (int reg = 0; reg <= 15; reg++) {
+        c.vmovdqu(ptr[rsp + 32 * reg], Xbyak::Ymm(reg));
     }
     if (save_flags) {
         c.pushfq();
@@ -251,12 +241,12 @@ static void RestoreContext(Xbyak::CodeGenerator& c, const Xbyak::Operand& dst,
     if (restore_flags) {
         c.popfq();
     }
-    for (int reg = 7; reg >= 0; reg--) {
+    for (int reg = 15; reg >= 0; reg--) {
         if ((!dst.isXMM() && !dst.isYMM()) || dst.getIdx() != reg) {
-            c.vmovdqu(Xbyak::Ymm(reg), ptr[rsp]);
+            c.vmovdqu(Xbyak::Ymm(reg), ptr[rsp + 32 * reg]);
         }
-        c.lea(rsp, ptr[rsp + 32]);
     }
+    c.lea(rsp, ptr[rsp + 32 * 16]);
     for (int reg = Xbyak::Operand::R15; reg >= Xbyak::Operand::RAX; reg--) {
         if (!dst.isREG() || dst.getIdx() != reg) {
             c.pop(Xbyak::Reg64(reg));
@@ -274,16 +264,37 @@ static void GenerateANDN(const ZydisDecodedOperand* operands, Xbyak::CodeGenerat
     const auto src1 = ZydisToXbyakRegisterOperand(operands[1]);
     const auto src2 = ZydisToXbyakOperand(operands[2]);
 
-    const auto scratch = AllocateScratchRegister({&dst, &src1, src2.get()}, dst.getBit());
+    // Check if src2 is a memory operand or a register different to dst.
+    // In those cases, we don't need to use a temporary register and are free to modify dst.
+    // In cases where dst and src2 are the same register, a temporary needs to be used to avoid
+    // modifying src2.
+    bool src2_uses_dst = false;
+    if (src2->isMEM()) {
+        const auto base = src2->getAddress().getRegExp().getBase().getIdx();
+        const auto index = src2->getAddress().getRegExp().getIndex().getIdx();
+        src2_uses_dst = base == dst.getIdx() || index == dst.getIdx();
+    } else {
+        ASSERT(src2->isREG());
+        src2_uses_dst = src2->getReg() == dst;
+    }
 
-    SaveRegisters(c, {scratch});
+    if (!src2_uses_dst) {
+        if (dst != src1)
+            c.mov(dst, src1);
+        c.not_(dst);
+        c.and_(dst, *src2);
+    } else {
+        const auto scratch = AllocateScratchRegister({&dst, &src1, src2.get()}, dst.getBit());
 
-    c.mov(scratch, src1);
-    c.not_(scratch);
-    c.and_(scratch, *src2);
-    c.mov(dst, scratch);
+        SaveRegisters(c, {scratch});
 
-    RestoreRegisters(c, {scratch});
+        c.mov(scratch, src1);
+        c.not_(scratch);
+        c.and_(scratch, *src2);
+        c.mov(dst, scratch);
+
+        RestoreRegisters(c, {scratch});
+    }
 }
 
 static void GenerateBEXTR(const ZydisDecodedOperand* operands, Xbyak::CodeGenerator& c) {
@@ -643,7 +654,7 @@ static void GenerateEXTRQ(const ZydisDecodedOperand* operands, Xbyak::CodeGenera
         ASSERT_MSG(length + index <= 64, "length + index must be less than or equal to 64.");
 
         // Get lower qword from xmm register
-        MAYBE_AVX(movq, scratch1, xmm_dst);
+        c.vmovq(scratch1, xmm_dst);
 
         if (index != 0) {
             c.shr(scratch1, index);
@@ -656,7 +667,7 @@ static void GenerateEXTRQ(const ZydisDecodedOperand* operands, Xbyak::CodeGenera
 
         // Writeback to xmm register, extrq instruction says top 64-bits are undefined so we don't
         // care to preserve them
-        MAYBE_AVX(movq, xmm_dst, scratch1);
+        c.vmovq(xmm_dst, scratch1);
 
         c.pop(scratch2);
         c.pop(scratch1);
@@ -690,7 +701,7 @@ static void GenerateEXTRQ(const ZydisDecodedOperand* operands, Xbyak::CodeGenera
         c.push(mask);
 
         // Construct the mask out of the length that resides in bottom 6 bits of source xmm
-        MAYBE_AVX(movq, scratch1, xmm_src);
+        c.vmovq(scratch1, xmm_src);
         c.mov(scratch2, scratch1);
         c.and_(scratch2, 0x3F);
         c.jz(length_zero);
@@ -711,10 +722,10 @@ static void GenerateEXTRQ(const ZydisDecodedOperand* operands, Xbyak::CodeGenera
         c.and_(scratch1, 0x3F);
         c.mov(scratch2, scratch1); // cl now contains the shift amount
 
-        MAYBE_AVX(movq, scratch1, xmm_dst);
+        c.vmovq(scratch1, xmm_dst);
         c.shr(scratch1, cl);
         c.and_(scratch1, mask);
-        MAYBE_AVX(movq, xmm_dst, scratch1);
+        c.vmovq(xmm_dst, scratch1);
 
         c.pop(mask);
         c.pop(scratch2);
@@ -765,8 +776,8 @@ static void GenerateINSERTQ(const ZydisDecodedOperand* operands, Xbyak::CodeGene
 
         ASSERT_MSG(length + index <= 64, "length + index must be less than or equal to 64.");
 
-        MAYBE_AVX(movq, scratch1, xmm_src);
-        MAYBE_AVX(movq, scratch2, xmm_dst);
+        c.vmovq(scratch1, xmm_src);
+        c.vmovq(scratch2, xmm_dst);
         c.mov(mask, mask_value);
 
         // src &= mask
@@ -784,12 +795,7 @@ static void GenerateINSERTQ(const ZydisDecodedOperand* operands, Xbyak::CodeGene
         c.or_(scratch2, scratch1);
 
         // Insert scratch2 into low 64 bits of dst, upper 64 bits are unaffected
-        Cpu cpu;
-        if (cpu.has(Cpu::tAVX)) {
-            c.vpinsrq(xmm_dst, xmm_dst, scratch2, 0);
-        } else {
-            c.pinsrq(xmm_dst, scratch2, 0);
-        }
+        c.vpinsrq(xmm_dst, xmm_dst, scratch2, 0);
 
         c.pop(mask);
         c.pop(scratch2);
@@ -816,7 +822,7 @@ static void GenerateINSERTQ(const ZydisDecodedOperand* operands, Xbyak::CodeGene
         c.push(mask);
 
         // Get upper 64 bits of src and copy it to mask and index
-        MAYBE_AVX(pextrq, index, xmm_src, 1);
+        c.vpextrq(index, xmm_src, 1);
         c.mov(mask, index);
 
         // When length is 0, set it to 64
@@ -839,7 +845,7 @@ static void GenerateINSERTQ(const ZydisDecodedOperand* operands, Xbyak::CodeGene
         c.and_(index, 0x3F);
 
         // src &= mask
-        MAYBE_AVX(movq, scratch1, xmm_src);
+        c.vmovq(scratch1, xmm_src);
         c.and_(scratch1, mask);
 
         // mask = ~(mask << index)
@@ -851,12 +857,12 @@ static void GenerateINSERTQ(const ZydisDecodedOperand* operands, Xbyak::CodeGene
         c.shl(scratch1, cl);
 
         // dst = (dst & mask) | src
-        MAYBE_AVX(movq, scratch2, xmm_dst);
+        c.vmovq(scratch2, xmm_dst);
         c.and_(scratch2, mask);
         c.or_(scratch2, scratch1);
 
         // Upper 64 bits are undefined in insertq
-        MAYBE_AVX(movq, xmm_dst, scratch2);
+        c.vmovq(xmm_dst, scratch2);
 
         c.pop(mask);
         c.pop(index);
@@ -1056,10 +1062,10 @@ static bool TryExecuteIllegalInstruction(void* ctx, void* code_address) {
             if (length + index > 64) {
                 // Undefined behavior if length + index is bigger than 64 according to the spec,
                 // we'll warn and continue execution.
-                LOG_WARNING(Core,
-                            "extrq at {} with length {} and index {} is bigger than 64, "
-                            "undefined behavior",
-                            fmt::ptr(code_address), length, index);
+                LOG_TRACE(Core,
+                          "extrq at {} with length {} and index {} is bigger than 64, "
+                          "undefined behavior",
+                          fmt::ptr(code_address), length, index);
             }
 
             lowQWordDst >>= index;
@@ -1116,10 +1122,10 @@ static bool TryExecuteIllegalInstruction(void* ctx, void* code_address) {
             if (length + index > 64) {
                 // Undefined behavior if length + index is bigger than 64 according to the spec,
                 // we'll warn and continue execution.
-                LOG_WARNING(Core,
-                            "insertq at {} with length {} and index {} is bigger than 64, "
-                            "undefined behavior",
-                            fmt::ptr(code_address), length, index);
+                LOG_TRACE(Core,
+                          "insertq at {} with length {} and index {} is bigger than 64, "
+                          "undefined behavior",
+                          fmt::ptr(code_address), length, index);
             }
 
             lowQWordSrc &= mask;
