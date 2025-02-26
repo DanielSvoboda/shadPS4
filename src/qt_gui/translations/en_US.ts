@@ -888,6 +888,13 @@
     </message>
 </context>
 <context>
+    <name>Libraries::NpTrophy::TrophyUI</name>
+    <message>
+        <source>Trophy earned!</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <source>Open/Add Elf Folder</source>
@@ -1801,6 +1808,16 @@
     </message>
     <message>
         <source>Separate Log Files:\nWrites a separate logfile for each game.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>It is possible to add custom images to the trophies.
+Add the files to custom_trophy with the following names:
+bronze.png, gold.png, platinum.png, silver.png</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open custom_trophy folder</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
