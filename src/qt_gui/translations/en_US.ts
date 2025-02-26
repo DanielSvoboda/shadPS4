@@ -1811,6 +1811,22 @@
         <source>Separate Log Files:\nWrites a separate logfile for each game.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Trophy Notification Position</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Notification Duration</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>TrophyViewer</name>
