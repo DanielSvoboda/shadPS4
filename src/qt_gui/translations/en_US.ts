@@ -419,11 +419,11 @@
     </message>
     <message>
         <source>Left</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Left</translation>
     </message>
     <message>
         <source>Right</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Right</translation>
     </message>
     <message>
         <source>Down</source>
@@ -1833,6 +1833,22 @@
     <message>
         <source>Trophy Viewer</source>
         <translation>Trophy Viewer</translation>
+    </message>
+    <message>
+        <source>Progress</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Earned Trophies</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Not Earned Trophies</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Hidden Trophies</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>
