@@ -471,7 +471,7 @@ void CheckUpdate::Install() {
     arguments << "-ExecutionPolicy"
               << "Bypass"
               << "-File" << scriptFileName;
-    processCommand = "powershell.exe";
+    processCommand = "powershell";
 
 #elif defined(Q_OS_LINUX)
     // Linux Shell Script
