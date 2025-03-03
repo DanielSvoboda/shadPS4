@@ -467,11 +467,13 @@ void CheckUpdate::Install() {
         "Remove-Item -Force -LiteralPath '%3\\temp_download_update.zip'\n"
         "Remove-Item -Recurse -Force '%2'\n"
         "Start-Process -FilePath '%3\\shadps4.exe' "
-        "-WorkingDirectory ([WildcardPattern]::Escape('%3'))\n");
-    arguments << "-ExecutionPolicy"
-              << "Bypass"
+        "-WorkingDirectory ([WildcardPattern]::Escape('%3'))\n"
+        "Stop-Process -Name 'powershell' -Force");
+    arguments << "-ExecutionPolicy" << "Bypass"
+              << "-NoExit"
+              << "-NoLogo"
               << "-File" << scriptFileName;
-    processCommand = "powershell";
+    processCommand = "powershell.exe";
 
 #elif defined(Q_OS_LINUX)
     // Linux Shell Script
