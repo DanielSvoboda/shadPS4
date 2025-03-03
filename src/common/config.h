@@ -30,6 +30,8 @@ bool getEnableDiscordRPC();
 bool getSeparateUpdateEnabled();
 bool getCompatibilityEnabled();
 bool getCheckCompatibilityOnStartup();
+int getBackgroundImageOpacity();
+bool getShowBackgroundImage();
 
 std::string getLogFilter();
 std::string getLogType();
@@ -37,35 +39,47 @@ std::string getUserName();
 std::string getUpdateChannel();
 std::string getChooseHomeTab();
 
-u16 leftDeadZone();
-u16 rightDeadZone();
 s16 getCursorState();
 int getCursorHideTimeout();
+double getTrophyNotificationDuration();
 std::string getBackButtonBehavior();
 bool getUseSpecialPad();
 int getSpecialPadClass();
 bool getIsMotionControlsEnabled();
+bool GetUseUnifiedInputConfig();
+void SetUseUnifiedInputConfig(bool use);
+bool GetOverrideControllerColor();
+void SetOverrideControllerColor(bool enable);
+int* GetControllerCustomColor();
+void SetControllerCustomColor(int r, int b, int g);
 
 u32 getScreenWidth();
 u32 getScreenHeight();
 s32 getGpuId();
+bool allowHDR();
 
 bool debugDump();
 bool collectShadersForDebug();
 bool showSplash();
 bool autoUpdate();
+bool alwaysShowChangelog();
+std::string sideTrophy();
 bool nullGpu();
 bool copyGPUCmdBuffers();
 bool dumpShaders();
 bool patchShaders();
 bool isRdocEnabled();
+bool fpsColor();
 u32 vblankDiv();
 
 void setDebugDump(bool enable);
 void setCollectShaderForDebug(bool enable);
 void setShowSplash(bool enable);
 void setAutoUpdate(bool enable);
+void setAlwaysShowChangelog(bool enable);
+void setSideTrophy(std::string side);
 void setNullGpu(bool enable);
+void setAllowHDR(bool enable);
 void setCopyGPUCmdBuffers(bool enable);
 void setDumpShaders(bool enable);
 void setVblankDiv(u32 value);
@@ -88,9 +102,12 @@ void setGameInstallDirs(const std::vector<std::filesystem::path>& settings_insta
 void setSaveDataPath(const std::filesystem::path& path);
 void setCompatibilityEnabled(bool use);
 void setCheckCompatibilityOnStartup(bool use);
+void setBackgroundImageOpacity(int opacity);
+void setShowBackgroundImage(bool show);
 
 void setCursorState(s16 cursorState);
 void setCursorHideTimeout(int newcursorHideTimeout);
+void setTrophyNotificationDuration(double newTrophyNotificationDuration);
 void setBackButtonBehavior(const std::string& type);
 void setUseSpecialPad(bool use);
 void setSpecialPadClass(int type);
@@ -98,7 +115,8 @@ void setIsMotionControlsEnabled(bool use);
 
 void setLogType(const std::string& type);
 void setLogFilter(const std::string& type);
-
+void setSeparateLogFilesEnabled(bool enabled);
+bool getSeparateLogFilesEnabled();
 void setVkValidation(bool enable);
 void setVkSyncValidation(bool enable);
 void setRdocEnabled(bool enable);
@@ -151,6 +169,9 @@ std::vector<std::string> getRecentFiles();
 std::string getEmulatorLanguage();
 
 void setDefaultValues();
+
+// todo: name and function location pending
+std::filesystem::path GetFoolproofKbmConfigFile(const std::string& game_id = "");
 
 // settings
 u32 GetLanguage();

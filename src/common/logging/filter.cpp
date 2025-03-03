@@ -80,6 +80,7 @@ bool ParseFilterRule(Filter& instance, Iterator begin, Iterator end) {
     SUB(Kernel, Sce)                                                                               \
     CLS(Lib)                                                                                       \
     SUB(Lib, LibC)                                                                                 \
+    SUB(Lib, LibcInternal)                                                                         \
     SUB(Lib, Kernel)                                                                               \
     SUB(Lib, Pad)                                                                                  \
     SUB(Lib, GnmDriver)                                                                            \
@@ -134,6 +135,7 @@ bool ParseFilterRule(Filter& instance, Iterator begin, Iterator end) {
     SUB(Lib, WebBrowserDialog)                                                                     \
     SUB(Lib, NpParty)                                                                              \
     SUB(Lib, Zlib)                                                                                 \
+    SUB(Lib, Hmd)                                                                                  \
     CLS(Frontend)                                                                                  \
     CLS(Render)                                                                                    \
     SUB(Render, Vulkan)                                                                            \

@@ -30,6 +30,7 @@ Q_SIGNALS:
 public Q_SLOTS:
     void SetListBackgroundImage(QTableWidgetItem* item);
     void RefreshListBackgroundImage();
+    void resizeEvent(QResizeEvent* event);
     void SortNameAscending(int columnIndex);
     void SortNameDescending(int columnIndex);
     void PlayBackgroundMusic(QTableWidgetItem* item);
@@ -44,11 +45,14 @@ private:
     QList<QAction*> m_columnActs;
     GameInfoClass* game_inf_get = nullptr;
     bool ListSortedAsc = true;
+    QTableWidgetItem* m_current_item = nullptr;
+    int m_last_opacity = -1; // Track last opacity to avoid unnecessary recomputation
+    std::filesystem::path m_current_game_path; // Track current game path to detect changes
 
 public:
     void PopulateGameList(bool isInitialPopulation = true);
     void ResizeIcons(int iconSize);
-
+    QTableWidgetItem* GetCurrentItem();
     QImage backgroundImage;
     GameListUtils m_game_list_utils;
     GuiContextMenus m_gui_context_menus;

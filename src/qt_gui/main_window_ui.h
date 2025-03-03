@@ -39,6 +39,7 @@ public:
     QAction* setThemeViolet;
     QAction* setThemeGruvbox;
     QAction* setThemeTokyoNight;
+    QAction* setThemeOled;
     QWidget* centralWidget;
     QLineEdit* mw_searchbar;
     QPushButton* playButton;
@@ -47,6 +48,7 @@ public:
     QPushButton* refreshButton;
     QPushButton* settingsButton;
     QPushButton* controllerButton;
+    QPushButton* keyboardButton;
 
     QWidget* sizeSliderContainer;
     QHBoxLayout* sizeSliderContainer_layout;
@@ -170,6 +172,9 @@ public:
         setThemeTokyoNight = new QAction(MainWindow);
         setThemeTokyoNight->setObjectName("setThemeTokyoNight");
         setThemeTokyoNight->setCheckable(true);
+        setThemeOled = new QAction(MainWindow);
+        setThemeOled->setObjectName("setThemeOled");
+        setThemeOled->setCheckable(true);
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName("centralWidget");
         sizePolicy.setHeightForWidth(centralWidget->sizePolicy().hasHeightForWidth());
@@ -210,6 +215,10 @@ public:
         controllerButton->setFlat(true);
         controllerButton->setIcon(QIcon(":images/controller_icon.png"));
         controllerButton->setIconSize(QSize(40, 40));
+        keyboardButton = new QPushButton(centralWidget);
+        keyboardButton->setFlat(true);
+        keyboardButton->setIcon(QIcon(":images/keyboard_icon.png"));
+        keyboardButton->setIconSize(QSize(48, 44));
 
         sizeSliderContainer = new QWidget(centralWidget);
         sizeSliderContainer->setObjectName("sizeSliderContainer");
@@ -298,6 +307,7 @@ public:
         menuThemes->addAction(setThemeViolet);
         menuThemes->addAction(setThemeGruvbox);
         menuThemes->addAction(setThemeTokyoNight);
+        menuThemes->addAction(setThemeOled);
         menuGame_List_Icons->addAction(setIconSizeTinyAct);
         menuGame_List_Icons->addAction(setIconSizeSmallAct);
         menuGame_List_Icons->addAction(setIconSizeMediumAct);
@@ -388,6 +398,7 @@ public:
         setThemeViolet->setText(QCoreApplication::translate("MainWindow", "Violet", nullptr));
         setThemeGruvbox->setText("Gruvbox");
         setThemeTokyoNight->setText("Tokyo Night");
+        setThemeOled->setText("OLED");
         toolBar->setWindowTitle(QCoreApplication::translate("MainWindow", "toolBar", nullptr));
     } // retranslateUi
 };
