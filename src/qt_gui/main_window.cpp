@@ -91,7 +91,7 @@ bool MainWindow::Init() {
     this->setStatusBar(statusBar.data());
     // Update status bar
     int numGames = m_game_info->m_games.size();
-    QString statusMessage = tr("Games: ") + QString::number(numGames) + " (" +
+    QString statusMessage = tr("TEST: ") + QString::number(numGames) + " (" +
                             QString::number(duration.count()) + "ms)";
     statusBar->showMessage(statusMessage);
 
