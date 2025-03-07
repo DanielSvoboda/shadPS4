@@ -1474,6 +1474,10 @@
         <source>shadPS4</source>
         <translation type="unfinished">shadPS4</translation>
     </message>
+    <message>
+        <source>TEST: </source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>PKGViewer</name>
