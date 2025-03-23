@@ -787,7 +787,19 @@ void SettingsDialog::UpdateSettings() {
     std::vector<Config::GameInstallDir> dirs_with_states;
     for (int i = 0; i < ui->gameFoldersListWidget->count(); i++) {
         QListWidgetItem* item = ui->gameFoldersListWidget->item(i);
-        QString path_string = item->text();
+
+        // Get the original path from the item's data
+        QString path_string;
+        if (item->data(Qt::UserRole).isValid()) {
+            path_string = item->data(Qt::UserRole).toString();
+        } else {
+            // Fallback to text if data is not available
+            path_string = item->text();
+            // Remove the warning text if present
+            if (path_string.contains(tr(" (Directory not found)"))) {
+                path_string = path_string.left(path_string.indexOf(tr(" (Directory not found)")));
+            }
+        }
         auto path = Common::FS::PathFromQString(path_string);
         bool enabled = (item->checkState() == Qt::Checked);
 
@@ -837,15 +849,27 @@ void SettingsDialog::ResetInstallFolders() {
             std::filesystem::path dir = install_dir_array[i];
             bool enabled = install_dirs_enabled[i];
 
-            settings_install_dirs_config.push_back({dir, enabled});
-
             QString path_string;
             Common::FS::PathToQString(path_string, dir);
 
-            QListWidgetItem* item = new QListWidgetItem(path_string);
+            QListWidgetItem* item = new QListWidgetItem();
             item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
             item->setCheckState(enabled ? Qt::Checked : Qt::Unchecked);
+            // Store the original path in the item's data
+            item->setData(Qt::UserRole, path_string);
+
+            // Check if directory exists
+            std::error_code ec;
+            if (!std::filesystem::exists(dir, ec)) {
+                // Set text color to red and display warning
+                item->setForeground(Qt::red);
+                item->setText(path_string + tr(" (Directory not found)"));
+            } else {
+                // Normal display
+                item->setText(path_string);
+            }
             ui->gameFoldersListWidget->addItem(item);
+            settings_install_dirs_config.push_back({dir, enabled});
         }
 
         Config::setAllGameInstallDirs(settings_install_dirs_config);
