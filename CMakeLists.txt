@@ -8,15 +8,16 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(APPLE)
-    enable_language(OBJC)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET 14)
+    list(APPEND ADDITIONAL_LANGUAGES OBJC)
+    # Starting with 15.4, Rosetta 2 has support for all the necessary instruction sets.
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 15.4)
 endif()
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-project(shadPS4 CXX C ASM)
+project(shadPS4 CXX C ASM ${ADDITIONAL_LANGUAGES})
 
 # Forcing PIE makes sure that the base address is high enough so that it doesn't clash with the PS4 memory.
 if(UNIX AND NOT APPLE)
@@ -37,8 +38,10 @@ option(ENABLE_UPDATER "Enables the options to updater" ON)
 # First, determine whether to use CMAKE_OSX_ARCHITECTURES or CMAKE_SYSTEM_PROCESSOR.
 if (APPLE AND CMAKE_OSX_ARCHITECTURES)
     set(BASE_ARCHITECTURE "${CMAKE_OSX_ARCHITECTURES}")
-else()
+elseif (CMAKE_SYSTEM_PROCESSOR)
     set(BASE_ARCHITECTURE "${CMAKE_SYSTEM_PROCESSOR}")
+else()
+    set(BASE_ARCHITECTURE "${CMAKE_HOST_SYSTEM_PROCESSOR}")
 endif()
 
 # Next, match common architecture strings down to a known common value.
@@ -50,7 +53,13 @@ else()
     message(FATAL_ERROR "Unsupported CPU architecture: ${BASE_ARCHITECTURE}")
 endif()
 
-if (APPLE AND ARCHITECTURE STREQUAL "x86_64" AND CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64")
+if (ARCHITECTURE STREQUAL "x86_64")
+    # Target the same CPU architecture as the PS4, to maintain the same level of compatibility.
+    # Exclude SSE4a as it is only available on AMD CPUs.
+    add_compile_options(-march=btver2 -mtune=generic -mno-sse4a)
+endif()
+
+if (APPLE AND ARCHITECTURE STREQUAL "x86_64" AND CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
     # Exclude ARM homebrew path to avoid conflicts when cross compiling.
     list(APPEND CMAKE_IGNORE_PREFIX_PATH "/opt/homebrew")
 
@@ -106,28 +115,74 @@ git_describe(GIT_DESC --always --long --dirty)
 git_branch_name(GIT_BRANCH)
 string(TIMESTAMP BUILD_DATE "%Y-%m-%d %H:%M:%S")
 
+message("start git things")
+
 # Try to get the upstream remote and branch
+message("check for remote and branch")
 execute_process(
   COMMAND git rev-parse --abbrev-ref --symbolic-full-name @{u}
   OUTPUT_VARIABLE GIT_REMOTE_NAME
-  RESULT_VARIABLE GIT_BRANCH_RESULT
+  RESULT_VARIABLE GIT_REMOTE_RESULT
   ERROR_QUIET
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
 # If there's no upstream set or the command failed, check remote.pushDefault
-if (GIT_BRANCH_RESULT OR GIT_REMOTE_NAME STREQUAL "")
+if (GIT_REMOTE_RESULT OR GIT_REMOTE_NAME STREQUAL "")
+  message("check default push")
   execute_process(
     COMMAND git config --get remote.pushDefault
     OUTPUT_VARIABLE GIT_REMOTE_NAME
-    RESULT_VARIABLE GIT_PUSH_DEFAULT_RESULT
+    RESULT_VARIABLE GIT_REMOTE_RESULT
     ERROR_QUIET
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
-  
-  # If remote.pushDefault is not set or fails, default to origin
-  if (GIT_PUSH_DEFAULT_RESULT OR GIT_REMOTE_NAME STREQUAL "")
-    set(GIT_REMOTE_NAME "origin")
+endif()
+
+# If running in GitHub Actions and the above fails
+if (GIT_REMOTE_RESULT OR GIT_REMOTE_NAME STREQUAL "")
+  message("check github")
+  set(GIT_REMOTE_NAME "origin")
+
+  # Retrieve environment variables
+  if (DEFINED ENV{GITHUB_HEAD_REF} AND NOT "$ENV{GITHUB_HEAD_REF}" STREQUAL "")
+    message("github head ref: $ENV{GITHUB_HEAD_REF}")
+    set(GITHUB_HEAD_REF "$ENV{GITHUB_HEAD_REF}")
+  else()
+    set(GITHUB_HEAD_REF "")
+  endif()
+
+  if (DEFINED ENV{GITHUB_REF} AND NOT "$ENV{GITHUB_REF}" STREQUAL "")
+    message("github ref: $ENV{GITHUB_REF}")
+    string(REGEX REPLACE "^refs/[^/]*/" "" GITHUB_BRANCH "$ENV{GITHUB_REF}")
+    string(REGEX MATCH "refs/pull/([0-9]+)/merge" MATCHED_REF "$ENV{GITHUB_REF}")
+    if (MATCHED_REF)
+      set(PR_NUMBER "${CMAKE_MATCH_1}")
+      set(GITHUB_BRANCH "")
+      message("PR number: ${PR_NUMBER}")
+    else()
+      set(PR_NUMBER "")
+    endif()
+  else()
+    set(GITHUB_BRANCH "")
+    set(PR_NUMBER "")
+  endif()
+
+  if (NOT "${PR_NUMBER}" STREQUAL "" AND NOT "${GITHUB_HEAD_REF}" STREQUAL "")
+    set(GIT_BRANCH "pr-${PR_NUMBER}-${GITHUB_HEAD_REF}")
+  elseif (NOT "${PR_NUMBER}" STREQUAL "" AND NOT "${GITHUB_BRANCH}" STREQUAL "")
+    set(GIT_BRANCH "pr-${PR_NUMBER}-${GITHUB_BRANCH}")
+  elseif (NOT "${PR_NUMBER}" STREQUAL "")
+    set(GIT_BRANCH "pr-${PR_NUMBER}")
+  elseif ("${PR_NUMBER}" STREQUAL "" AND NOT "${GITHUB_HEAD_REF}" STREQUAL "")
+    set(GIT_BRANCH "${GITHUB_HEAD_REF}")
+  elseif ("${PR_NUMBER}" STREQUAL "" AND NOT "${GITHUB_BRANCH}" STREQUAL "")
+    set(GIT_BRANCH "${GITHUB_BRANCH}")
+  elseif ("${PR_NUMBER}" STREQUAL "" AND NOT "${GITHUB_REF}" STREQUAL "")
+    set(GIT_BRANCH "${GITHUB_REF}")
+  else()
+    message("couldn't find branch")
+    set(GIT_BRANCH "detached-head")
   endif()
 else()
   # Extract remote name if the output contains a remote/branch format
@@ -141,13 +196,18 @@ else()
 endif()
 
 # Get remote link
+message("getting remote link")
 execute_process(
   COMMAND git config --get remote.${GIT_REMOTE_NAME}.url
   OUTPUT_VARIABLE GIT_REMOTE_URL
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+set(APP_VERSION "0.7.1 WIP")
+set(APP_IS_RELEASE false)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/common/scm_rev.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/src/common/scm_rev.cpp" @ONLY)
+
+message("end git things, remote: ${GIT_REMOTE_NAME}, branch: ${GIT_BRANCH}")
 
 find_package(Boost 1.84.0 CONFIG)
 find_package(FFmpeg 5.1.2 MODULE)
@@ -161,17 +221,14 @@ find_package(SDL3 3.1.2 CONFIG)
 find_package(stb MODULE)
 find_package(toml11 4.2.0 CONFIG)
 find_package(tsl-robin-map 1.3.0 CONFIG)
-find_package(VulkanHeaders 1.4.305 CONFIG)
+find_package(VulkanHeaders 1.4.309 CONFIG)
 find_package(VulkanMemoryAllocator 3.1.0 CONFIG)
 find_package(xbyak 7.07 CONFIG)
 find_package(xxHash 0.8.2 MODULE)
 find_package(ZLIB 1.3 MODULE)
 find_package(Zydis 5.0.0 CONFIG)
 find_package(pugixml 1.14 CONFIG)
-
-if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR NOT MSVC)
-    find_package(cryptopp 8.9.0 MODULE)
-endif()
+find_package(libusb 1.0.27 MODULE)
 
 if (APPLE)
     find_package(date 3.0.1 CONFIG)
@@ -278,6 +335,8 @@ set(KERNEL_LIB src/core/libraries/kernel/sync/mutex.cpp
                src/core/libraries/kernel/threads/thread_state.h
                src/core/libraries/kernel/process.cpp
                src/core/libraries/kernel/process.h
+               src/core/libraries/kernel/debug.cpp
+               src/core/libraries/kernel/debug.h
                src/core/libraries/kernel/equeue.cpp
                src/core/libraries/kernel/equeue.h
                src/core/libraries/kernel/file_system.cpp
@@ -298,6 +357,7 @@ set(KERNEL_LIB src/core/libraries/kernel/sync/mutex.cpp
 
 set(NETWORK_LIBS src/core/libraries/network/http.cpp
                  src/core/libraries/network/http.h
+                 src/core/libraries/network/http_error.h
                  src/core/libraries/network/http2.cpp
                  src/core/libraries/network/http2.h
                  src/core/libraries/network/net.cpp
@@ -370,6 +430,24 @@ set(SYSTEM_LIBS src/core/libraries/system/commondialog.cpp
                 src/core/libraries/ngs2/ngs2_error.h
                 src/core/libraries/ngs2/ngs2_impl.cpp
                 src/core/libraries/ngs2/ngs2_impl.h
+                src/core/libraries/ngs2/ngs2_custom.cpp
+                src/core/libraries/ngs2/ngs2_custom.h
+                src/core/libraries/ngs2/ngs2_reverb.cpp
+                src/core/libraries/ngs2/ngs2_reverb.h
+                src/core/libraries/ngs2/ngs2_geom.cpp
+                src/core/libraries/ngs2/ngs2_geom.h
+                src/core/libraries/ngs2/ngs2_pan.cpp
+                src/core/libraries/ngs2/ngs2_pan.h
+                src/core/libraries/ngs2/ngs2_report.cpp
+                src/core/libraries/ngs2/ngs2_report.h
+                src/core/libraries/ngs2/ngs2_eq.cpp
+                src/core/libraries/ngs2/ngs2_eq.h
+                src/core/libraries/ngs2/ngs2_mastering.cpp
+                src/core/libraries/ngs2/ngs2_mastering.h
+                src/core/libraries/ngs2/ngs2_sampler.cpp
+                src/core/libraries/ngs2/ngs2_sampler.h
+                src/core/libraries/ngs2/ngs2_submixer.cpp
+                src/core/libraries/ngs2/ngs2_submixer.h
                 src/core/libraries/ajm/ajm_error.h
                 src/core/libraries/audio3d/audio3d.cpp
                 src/core/libraries/audio3d/audio3d.h
@@ -504,6 +582,8 @@ set(MISC_LIBS  src/core/libraries/screenshot/screenshot.cpp
                src/core/libraries/screenshot/screenshot.h
                src/core/libraries/move/move.cpp
                src/core/libraries/move/move.h
+               src/core/libraries/ulobjmgr/ulobjmgr.cpp
+               src/core/libraries/ulobjmgr/ulobjmgr.h
 )
 
 set(DEV_TOOLS src/core/devtools/layer.cpp
@@ -543,6 +623,7 @@ set(COMMON src/common/logging/backend.cpp
            src/common/logging/text_formatter.cpp
            src/common/logging/text_formatter.h
            src/common/logging/types.h
+           src/common/aes.h
            src/common/alignment.h
            src/common/arch.h
            src/common/assert.cpp
@@ -574,6 +655,7 @@ set(COMMON src/common/logging/backend.cpp
            src/common/polyfill_thread.h
            src/common/rdtsc.cpp
            src/common/rdtsc.h
+           src/common/sha1.h
            src/common/signal_context.h
            src/common/signal_context.cpp
            src/common/singleton.h
@@ -583,6 +665,7 @@ set(COMMON src/common/logging/backend.cpp
            src/common/spin_lock.h
            src/common/stb.cpp
            src/common/stb.h
+           src/common/string_literal.h
            src/common/string_util.cpp
            src/common/string_util.h
            src/common/thread.cpp
@@ -591,7 +674,6 @@ set(COMMON src/common/logging/backend.cpp
            src/common/uint128.h
            src/common/unique_function.h
            src/common/va_ctx.h
-           src/common/version.h
            src/common/ntapi.h
            src/common/ntapi.cpp
            src/common/number_utils.h
@@ -612,9 +694,6 @@ set(CORE src/core/aerolib/stubs.cpp
          src/core/aerolib/aerolib.h
          src/core/address_space.cpp
          src/core/address_space.h
-         src/core/crypto/crypto.cpp
-         src/core/crypto/crypto.h
-         src/core/crypto/keys.h
          src/core/devices/base_device.cpp
          src/core/devices/base_device.h
          src/core/devices/ioccom.h
@@ -632,22 +711,14 @@ set(CORE src/core/aerolib/stubs.cpp
          src/core/devices/srandom_device.cpp
          src/core/devices/srandom_device.h
          src/core/file_format/pfs.h
-         src/core/file_format/pkg.cpp
-         src/core/file_format/pkg.h
-         src/core/file_format/pkg_type.cpp
-         src/core/file_format/pkg_type.h
          src/core/file_format/psf.cpp
          src/core/file_format/psf.h
          src/core/file_format/playgo_chunk.cpp
          src/core/file_format/playgo_chunk.h
          src/core/file_format/trp.cpp
          src/core/file_format/trp.h
-         src/core/file_format/splash.h
-         src/core/file_format/splash.cpp
          src/core/file_sys/fs.cpp
          src/core/file_sys/fs.h
-         src/core/loader.cpp
-         src/core/loader.h
          src/core/loader/dwarf.cpp
          src/core/loader/dwarf.h
          src/core/loader/elf.cpp
@@ -764,6 +835,7 @@ set(SHADER_RECOMPILER src/shader_recompiler/exception.h
                       src/shader_recompiler/ir/passes/identity_removal_pass.cpp
                       src/shader_recompiler/ir/passes/ir_passes.h
                       src/shader_recompiler/ir/passes/lower_buffer_format_to_raw.cpp
+                      src/shader_recompiler/ir/passes/readlane_elimination_pass.cpp
                       src/shader_recompiler/ir/passes/resource_tracking_pass.cpp
                       src/shader_recompiler/ir/passes/ring_access_elimination.cpp
                       src/shader_recompiler/ir/passes/shader_info_collection_pass.cpp
@@ -844,6 +916,10 @@ set(VIDEO_CORE src/video_core/amdgpu/liverpool.cpp
                src/video_core/renderer_vulkan/vk_shader_util.h
                src/video_core/renderer_vulkan/vk_swapchain.cpp
                src/video_core/renderer_vulkan/vk_swapchain.h
+               src/video_core/renderer_vulkan/host_passes/fsr_pass.cpp
+               src/video_core/renderer_vulkan/host_passes/fsr_pass.h
+               src/video_core/renderer_vulkan/host_passes/pp_pass.cpp
+               src/video_core/renderer_vulkan/host_passes/pp_pass.h
                src/video_core/texture_cache/image.cpp
                src/video_core/texture_cache/image.h
                src/video_core/texture_cache/image_info.cpp
@@ -916,6 +992,9 @@ set(QT_GUI src/qt_gui/about_dialog.cpp
 	   src/qt_gui/control_settings.cpp	   
            src/qt_gui/control_settings.h
            src/qt_gui/control_settings.ui
+           src/qt_gui/kbm_gui.cpp	   
+           src/qt_gui/kbm_gui.h
+           src/qt_gui/kbm_gui.ui
            src/qt_gui/main_window_ui.h
            src/qt_gui/main_window.cpp
            src/qt_gui/main_window.h
@@ -929,10 +1008,6 @@ set(QT_GUI src/qt_gui/about_dialog.cpp
            src/qt_gui/game_grid_frame.h
            src/qt_gui/game_install_dialog.cpp
            src/qt_gui/game_install_dialog.h
-           src/qt_gui/install_dir_select.cpp
-           src/qt_gui/install_dir_select.h
-           src/qt_gui/pkg_viewer.cpp
-           src/qt_gui/pkg_viewer.h
            src/qt_gui/trophy_viewer.cpp
            src/qt_gui/trophy_viewer.h
            src/qt_gui/elf_viewer.cpp
@@ -954,12 +1029,6 @@ set(QT_GUI src/qt_gui/about_dialog.cpp
 )
 endif()
 
-set(RESOURCEFOLDER Resources/bronze.png
-    		   Resources/gold.png
-    		   Resources/platinum.png
-    		   Resources/silver.png
-)
-
 if (ENABLE_QT_GUI)
     qt_add_executable(shadps4
         ${AUDIO_CORE}
@@ -971,7 +1040,6 @@ if (ENABLE_QT_GUI)
         ${SHADER_RECOMPILER}
         ${VIDEO_CORE}
         ${EMULATOR}
-	${RESOURCEFOLDER}
         src/images/shadPS4.icns
     )
 else()
@@ -984,7 +1052,6 @@ else()
         ${SHADER_RECOMPILER}
         ${VIDEO_CORE}
         ${EMULATOR}
-        ${RESOURCEFOLDER}
         src/main.cpp
         src/emulator.cpp
         src/emulator.h
@@ -996,7 +1063,7 @@ endif()
 create_target_directory_groups(shadps4)
 
 target_link_libraries(shadps4 PRIVATE magic_enum::magic_enum fmt::fmt toml11::toml11 tsl::robin_map xbyak::xbyak Tracy::TracyClient RenderDoc::API FFmpeg::ffmpeg Dear_ImGui gcn half::half ZLIB::ZLIB PNG::PNG)
-target_link_libraries(shadps4 PRIVATE Boost::headers GPUOpen::VulkanMemoryAllocator LibAtrac9 sirit Vulkan::Headers xxHash::xxhash Zydis::Zydis glslang::glslang SDL3::SDL3 pugixml::pugixml stb::headers)
+target_link_libraries(shadps4 PRIVATE Boost::headers GPUOpen::VulkanMemoryAllocator LibAtrac9 sirit Vulkan::Headers xxHash::xxhash Zydis::Zydis glslang::glslang SDL3::SDL3 pugixml::pugixml stb::headers libusb::usb)
 
 target_compile_definitions(shadps4 PRIVATE IMGUI_USER_CONFIG="imgui/imgui_config.h")
 target_compile_definitions(Dear_ImGui PRIVATE IMGUI_USER_CONFIG="${PROJECT_SOURCE_DIR}/src/imgui/imgui_config.h")
@@ -1043,12 +1110,6 @@ endif()
 
 if (NOT ENABLE_QT_GUI)
   target_link_libraries(shadps4 PRIVATE SDL3::SDL3)
-endif()
-
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND MSVC)
-    target_link_libraries(shadps4 PRIVATE cryptoppwin)
-else()
-    target_link_libraries(shadps4 PRIVATE cryptopp::cryptopp)
 endif()
 
 if (ENABLE_QT_GUI)
@@ -1117,8 +1178,10 @@ include(CMakeRC)
 cmrc_add_resource_library(embedded-resources
         ALIAS res::embedded
         NAMESPACE res
-        ${RESOURCEFOLDER})
-
+        src/images/bronze.png
+        src/images/gold.png
+        src/images/platinum.png
+        src/images/silver.png)
 target_link_libraries(shadps4 PRIVATE res::embedded)
 
 # ImGui resources
@@ -1132,8 +1195,8 @@ if (ENABLE_QT_GUI)
         MACOSX_BUNDLE ON
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/dist/MacOSBundleInfo.plist.in"
         MACOSX_BUNDLE_ICON_FILE "shadPS4.icns"
-        MACOSX_BUNDLE_SHORT_VERSION_STRING "0.4.1"
-        )
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${APP_VERSION}"
+    )
 
     set_source_files_properties(src/images/shadPS4.icns PROPERTIES
         MACOSX_PACKAGE_LOCATION Resources)

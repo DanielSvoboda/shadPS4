@@ -7,10 +7,10 @@
 #include <fmt/xchar.h> // for wstring support
 #include <toml.hpp>
 
+#include "common/config.h"
+#include "common/logging/formatter.h"
 #include "common/path_util.h"
-#include "config.h"
-#include "logging/formatter.h"
-#include "version.h"
+#include "common/scm_rev.h"
 
 namespace toml {
 template <typename TC, typename K>
@@ -32,6 +32,7 @@ std::filesystem::path find_fs_path_or(const basic_value<TC>& v, const K& ky,
 namespace Config {
 
 static bool isNeo = false;
+static bool isDevKit = false;
 static bool playBGM = false;
 static bool isTrophyPopupDisabled = false;
 static int BGMvolume = 50;
@@ -40,7 +41,7 @@ static u32 screenWidth = 1280;
 static u32 screenHeight = 720;
 static s32 gpuId = -1; // Vulkan physical device index. Set to negative for auto select
 static std::string logFilter;
-static std::string logType = "async";
+static std::string logType = "sync";
 static std::string userName = "shadPS4";
 static std::string updateChannel;
 static std::string chooseHomeTab;
@@ -53,6 +54,7 @@ static bool isShaderDebug = false;
 static bool isShowSplash = false;
 static bool isAutoUpdate = false;
 static bool isAlwaysShowChangelog = false;
+static std::string isSideTrophy = "right";
 static bool isNullGpu = false;
 static bool shouldCopyGPUBuffers = false;
 static bool shouldDumpShaders = false;
@@ -69,17 +71,18 @@ static bool isFpsColor = true;
 static bool isSeparateLogFilesEnabled = false;
 static s16 cursorState = HideCursorState::Idle;
 static int cursorHideTimeout = 5; // 5 seconds (default)
+static double trophyNotificationDuration = 6.0;
 static bool useUnifiedInputConfig = true;
 static bool overrideControllerColor = false;
 static int controllerCustomColorRGB[3] = {0, 0, 255};
-static bool separateupdatefolder = false;
 static bool compatibilityData = false;
 static bool checkCompatibilityOnStartup = false;
 static std::string trophyKey;
 
 // Gui
 static bool load_game_size = true;
-std::vector<std::filesystem::path> settings_install_dirs = {};
+static std::vector<GameInstallDir> settings_install_dirs = {};
+std::vector<bool> install_dirs_enabled = {};
 std::filesystem::path settings_addon_install_dir = {};
 std::filesystem::path save_data_path = {};
 u32 main_window_geometry_x = 400;
@@ -94,7 +97,6 @@ u32 m_slider_pos_grid = 0;
 u32 m_table_mode = 0;
 u32 m_window_size_W = 1280;
 u32 m_window_size_H = 720;
-std::vector<std::string> m_pkg_viewer;
 std::vector<std::string> m_elf_viewer;
 std::vector<std::string> m_recent_files;
 std::string emulator_language = "en_US";
@@ -103,6 +105,7 @@ static bool showBackgroundImage = true;
 static bool isFullscreen = false;
 static std::string fullscreenMode = "Windowed";
 static bool isHDRAllowed = false;
+static bool showLabelsUnderIcons = true;
 
 // Language
 u32 m_language = 1; // english
@@ -164,8 +167,20 @@ bool isNeoModeConsole() {
     return isNeo;
 }
 
+bool isDevKitConsole() {
+    return isDevKit;
+}
+
 bool getIsFullscreen() {
     return isFullscreen;
+}
+
+bool getShowLabelsUnderIcons() {
+    return showLabelsUnderIcons;
+}
+
+bool setShowLabelsUnderIcons() {
+    return false;
 }
 
 std::string getFullscreenMode() {
@@ -194,6 +209,10 @@ s16 getCursorState() {
 
 int getCursorHideTimeout() {
     return cursorHideTimeout;
+}
+
+double getTrophyNotificationDuration() {
+    return trophyNotificationDuration;
 }
 
 u32 getScreenWidth() {
@@ -264,6 +283,10 @@ bool alwaysShowChangelog() {
     return isAlwaysShowChangelog;
 }
 
+std::string sideTrophy() {
+    return isSideTrophy;
+}
+
 bool nullGpu() {
     return isNullGpu;
 }
@@ -328,10 +351,6 @@ void setVkGuestMarkersEnabled(bool enable) {
     vkGuestMarkers = enable;
 }
 
-bool getSeparateUpdateEnabled() {
-    return separateupdatefolder;
-}
-
 bool getCompatibilityEnabled() {
     return compatibilityData;
 }
@@ -372,6 +391,10 @@ void setAlwaysShowChangelog(bool enable) {
     isAlwaysShowChangelog = enable;
 }
 
+void setSideTrophy(std::string side) {
+    isSideTrophy = side;
+}
+
 void setNullGpu(bool enable) {
     isNullGpu = enable;
 }
@@ -407,6 +430,9 @@ void setVblankDiv(u32 value) {
 void setIsFullscreen(bool enable) {
     isFullscreen = enable;
 }
+static void setShowLabelsUnderIcons(bool enable) {
+    showLabelsUnderIcons = enable;
+}
 
 void setFullscreenMode(std::string mode) {
     fullscreenMode = mode;
@@ -434,6 +460,9 @@ void setCursorState(s16 newCursorState) {
 
 void setCursorHideTimeout(int newcursorHideTimeout) {
     cursorHideTimeout = newcursorHideTimeout;
+}
+void setTrophyNotificationDuration(double newTrophyNotificationDuration) {
+    trophyNotificationDuration = newTrophyNotificationDuration;
 }
 
 void setLanguage(u32 language) {
@@ -483,10 +512,6 @@ void setIsMotionControlsEnabled(bool use) {
     isMotionControlsEnabled = use;
 }
 
-void setSeparateUpdateEnabled(bool use) {
-    separateupdatefolder = use;
-}
-
 void setCompatibilityEnabled(bool use) {
     compatibilityData = use;
 }
@@ -502,19 +527,31 @@ void setMainWindowGeometry(u32 x, u32 y, u32 w, u32 h) {
     main_window_geometry_h = h;
 }
 
-bool addGameInstallDir(const std::filesystem::path& dir) {
-    if (std::find(settings_install_dirs.begin(), settings_install_dirs.end(), dir) ==
-        settings_install_dirs.end()) {
-        settings_install_dirs.push_back(dir);
-        return true;
+bool addGameInstallDir(const std::filesystem::path& dir, bool enabled) {
+    for (const auto& install_dir : settings_install_dirs) {
+        if (install_dir.path == dir) {
+            return false;
+        }
     }
-    return false;
+    settings_install_dirs.push_back({dir, enabled});
+    return true;
 }
 
 void removeGameInstallDir(const std::filesystem::path& dir) {
-    auto iterator = std::find(settings_install_dirs.begin(), settings_install_dirs.end(), dir);
+    auto iterator =
+        std::find_if(settings_install_dirs.begin(), settings_install_dirs.end(),
+                     [&dir](const GameInstallDir& install_dir) { return install_dir.path == dir; });
     if (iterator != settings_install_dirs.end()) {
         settings_install_dirs.erase(iterator);
+    }
+}
+
+void setGameInstallDirEnabled(const std::filesystem::path& dir, bool enabled) {
+    auto iterator =
+        std::find_if(settings_install_dirs.begin(), settings_install_dirs.end(),
+                     [&dir](const GameInstallDir& install_dir) { return install_dir.path == dir; });
+    if (iterator != settings_install_dirs.end()) {
+        iterator->enabled = enabled;
     }
 }
 
@@ -554,11 +591,6 @@ void setMainWindowHeight(u32 height) {
     m_window_size_H = height;
 }
 
-void setPkgViewer(const std::vector<std::string>& pkgList) {
-    m_pkg_viewer.resize(pkgList.size());
-    m_pkg_viewer = pkgList;
-}
-
 void setElfViewer(const std::vector<std::string>& elfList) {
     m_elf_viewer.resize(elfList.size());
     m_elf_viewer = elfList;
@@ -573,8 +605,15 @@ void setEmulatorLanguage(std::string language) {
     emulator_language = language;
 }
 
-void setGameInstallDirs(const std::vector<std::filesystem::path>& settings_install_dirs_config) {
-    settings_install_dirs = settings_install_dirs_config;
+void setGameInstallDirs(const std::vector<std::filesystem::path>& dirs_config) {
+    settings_install_dirs.clear();
+    for (const auto& dir : dirs_config) {
+        settings_install_dirs.push_back({dir, true});
+    }
+}
+
+void setAllGameInstallDirs(const std::vector<GameInstallDir>& dirs_config) {
+    settings_install_dirs = dirs_config;
 }
 
 void setSaveDataPath(const std::filesystem::path& path) {
@@ -597,8 +636,22 @@ u32 getMainWindowGeometryH() {
     return main_window_geometry_h;
 }
 
-const std::vector<std::filesystem::path>& getGameInstallDirs() {
-    return settings_install_dirs;
+const std::vector<std::filesystem::path> getGameInstallDirs() {
+    std::vector<std::filesystem::path> enabled_dirs;
+    for (const auto& dir : settings_install_dirs) {
+        if (dir.enabled) {
+            enabled_dirs.push_back(dir.path);
+        }
+    }
+    return enabled_dirs;
+}
+
+const std::vector<bool> getGameInstallDirsEnabled() {
+    std::vector<bool> enabled_dirs;
+    for (const auto& dir : settings_install_dirs) {
+        enabled_dirs.push_back(dir.enabled);
+    }
+    return enabled_dirs;
 }
 
 std::filesystem::path getAddonInstallDir() {
@@ -639,10 +692,6 @@ u32 getMainWindowWidth() {
 
 u32 getMainWindowHeight() {
     return m_window_size_H;
-}
-
-std::vector<std::string> getPkgViewer() {
-    return m_pkg_viewer;
 }
 
 std::vector<std::string> getElfViewer() {
@@ -704,14 +753,17 @@ void load(const std::filesystem::path& path) {
         const toml::value& general = data.at("General");
 
         isNeo = toml::find_or<bool>(general, "isPS4Pro", false);
+        isDevKit = toml::find_or<bool>(general, "isDevKit", false);
         playBGM = toml::find_or<bool>(general, "playBGM", false);
         isTrophyPopupDisabled = toml::find_or<bool>(general, "isTrophyPopupDisabled", false);
+        trophyNotificationDuration =
+            toml::find_or<double>(general, "trophyNotificationDuration", 5.0);
         BGMvolume = toml::find_or<int>(general, "BGMvolume", 50);
         enableDiscordRPC = toml::find_or<bool>(general, "enableDiscordRPC", true);
         logFilter = toml::find_or<std::string>(general, "logFilter", "");
         logType = toml::find_or<std::string>(general, "logType", "sync");
         userName = toml::find_or<std::string>(general, "userName", "shadPS4");
-        if (Common::isRelease) {
+        if (Common::g_is_release) {
             updateChannel = toml::find_or<std::string>(general, "updateChannel", "Release");
         } else {
             updateChannel = toml::find_or<std::string>(general, "updateChannel", "Nightly");
@@ -719,7 +771,7 @@ void load(const std::filesystem::path& path) {
         isShowSplash = toml::find_or<bool>(general, "showSplash", true);
         isAutoUpdate = toml::find_or<bool>(general, "autoUpdate", false);
         isAlwaysShowChangelog = toml::find_or<bool>(general, "alwaysShowChangelog", false);
-        separateupdatefolder = toml::find_or<bool>(general, "separateUpdateEnabled", false);
+        isSideTrophy = toml::find_or<std::string>(general, "sideTrophy", "right");
         compatibilityData = toml::find_or<bool>(general, "compatibilityEnabled", false);
         checkCompatibilityOnStartup =
             toml::find_or<bool>(general, "checkCompatibilityOnStartup", false);
@@ -788,9 +840,23 @@ void load(const std::filesystem::path& path) {
         m_window_size_H = toml::find_or<int>(gui, "mw_height", 0);
 
         const auto install_dir_array =
-            toml::find_or<std::vector<std::string>>(gui, "installDirs", {});
-        for (const auto& dir : install_dir_array) {
-            addGameInstallDir(std::filesystem::path{dir});
+            toml::find_or<std::vector<std::u8string>>(gui, "installDirs", {});
+
+        try {
+            install_dirs_enabled = toml::find<std::vector<bool>>(gui, "installDirsEnabled");
+        } catch (...) {
+            // If it does not exist, assume that all are enabled.
+            install_dirs_enabled.resize(install_dir_array.size(), true);
+        }
+
+        if (install_dirs_enabled.size() < install_dir_array.size()) {
+            install_dirs_enabled.resize(install_dir_array.size(), true);
+        }
+
+        settings_install_dirs.clear();
+        for (size_t i = 0; i < install_dir_array.size(); i++) {
+            settings_install_dirs.push_back(
+                {std::filesystem::path{install_dir_array[i]}, install_dirs_enabled[i]});
         }
 
         save_data_path = toml::find_fs_path_or(gui, "saveDataPath", {});
@@ -800,7 +866,6 @@ void load(const std::filesystem::path& path) {
         main_window_geometry_y = toml::find_or<int>(gui, "geometry_y", 0);
         main_window_geometry_w = toml::find_or<int>(gui, "geometry_w", 0);
         main_window_geometry_h = toml::find_or<int>(gui, "geometry_h", 0);
-        m_pkg_viewer = toml::find_or<std::vector<std::string>>(gui, "pkgDirs", {});
         m_elf_viewer = toml::find_or<std::vector<std::string>>(gui, "elfDirs", {});
         m_recent_files = toml::find_or<std::vector<std::string>>(gui, "recentFiles", {});
         m_table_mode = toml::find_or<int>(gui, "gameTableMode", 0);
@@ -833,8 +898,39 @@ void load(const std::filesystem::path& path) {
     }
 }
 
+void sortTomlSections(toml::ordered_value& data) {
+    toml::ordered_value ordered_data;
+    std::vector<std::string> section_order = {"General", "Input", "GPU", "Vulkan",
+                                              "Debug",   "Keys",  "GUI", "Settings"};
+
+    for (const auto& section : section_order) {
+        if (data.contains(section)) {
+            std::vector<std::string> keys;
+            for (const auto& item : data.at(section).as_table()) {
+                keys.push_back(item.first);
+            }
+
+            std::sort(keys.begin(), keys.end(), [](const std::string& a, const std::string& b) {
+                return std::lexicographical_compare(
+                    a.begin(), a.end(), b.begin(), b.end(), [](char a_char, char b_char) {
+                        return std::tolower(a_char) < std::tolower(b_char);
+                    });
+            });
+
+            toml::ordered_value ordered_section;
+            for (const auto& key : keys) {
+                ordered_section[key] = data.at(section).at(key);
+            }
+
+            ordered_data[section] = ordered_section;
+        }
+    }
+
+    data = ordered_data;
+}
+
 void save(const std::filesystem::path& path) {
-    toml::value data;
+    toml::ordered_value data;
 
     std::error_code error;
     if (std::filesystem::exists(path, error)) {
@@ -842,7 +938,8 @@ void save(const std::filesystem::path& path) {
             std::ifstream ifs;
             ifs.exceptions(std::ifstream::failbit | std::ifstream::badbit);
             ifs.open(path, std::ios_base::binary);
-            data = toml::parse(ifs, std::string{fmt::UTF(path.filename().u8string()).data});
+            data = toml::parse<toml::ordered_type_config>(
+                ifs, std::string{fmt::UTF(path.filename().u8string()).data});
         } catch (const std::exception& ex) {
             fmt::print("Exception trying to parse config file. Exception: {}\n", ex.what());
             return;
@@ -855,7 +952,9 @@ void save(const std::filesystem::path& path) {
     }
 
     data["General"]["isPS4Pro"] = isNeo;
+    data["General"]["isDevKit"] = isDevKit;
     data["General"]["isTrophyPopupDisabled"] = isTrophyPopupDisabled;
+    data["General"]["trophyNotificationDuration"] = trophyNotificationDuration;
     data["General"]["playBGM"] = playBGM;
     data["General"]["BGMvolume"] = BGMvolume;
     data["General"]["enableDiscordRPC"] = enableDiscordRPC;
@@ -867,7 +966,7 @@ void save(const std::filesystem::path& path) {
     data["General"]["showSplash"] = isShowSplash;
     data["General"]["autoUpdate"] = isAutoUpdate;
     data["General"]["alwaysShowChangelog"] = isAlwaysShowChangelog;
-    data["General"]["separateUpdateEnabled"] = separateupdatefolder;
+    data["General"]["sideTrophy"] = isSideTrophy;
     data["General"]["compatibilityEnabled"] = compatibilityData;
     data["General"]["checkCompatibilityOnStartup"] = checkCompatibilityOnStartup;
     data["Input"]["cursorState"] = cursorState;
@@ -899,14 +998,37 @@ void save(const std::filesystem::path& path) {
     data["Debug"]["CollectShader"] = isShaderDebug;
     data["Debug"]["isSeparateLogFilesEnabled"] = isSeparateLogFilesEnabled;
     data["Debug"]["FPSColor"] = isFpsColor;
-
     data["Keys"]["TrophyKey"] = trophyKey;
 
     std::vector<std::string> install_dirs;
-    for (const auto& dirString : settings_install_dirs) {
-        install_dirs.emplace_back(std::string{fmt::UTF(dirString.u8string()).data});
+    std::vector<bool> install_dirs_enabled;
+
+    // temporary structure for ordering
+    struct DirEntry {
+        std::string path_str;
+        bool enabled;
+    };
+
+    std::vector<DirEntry> sorted_dirs;
+    for (const auto& dirInfo : settings_install_dirs) {
+        sorted_dirs.push_back(
+            {std::string{fmt::UTF(dirInfo.path.u8string()).data}, dirInfo.enabled});
     }
+
+    // Sort directories alphabetically
+    std::sort(sorted_dirs.begin(), sorted_dirs.end(), [](const DirEntry& a, const DirEntry& b) {
+        return std::lexicographical_compare(
+            a.path_str.begin(), a.path_str.end(), b.path_str.begin(), b.path_str.end(),
+            [](char a_char, char b_char) { return std::tolower(a_char) < std::tolower(b_char); });
+    });
+
+    for (const auto& entry : sorted_dirs) {
+        install_dirs.push_back(entry.path_str);
+        install_dirs_enabled.push_back(entry.enabled);
+    }
+
     data["GUI"]["installDirs"] = install_dirs;
+    data["GUI"]["installDirsEnabled"] = install_dirs_enabled;
     data["GUI"]["saveDataPath"] = std::string{fmt::UTF(save_data_path.u8string()).data};
     data["GUI"]["loadGameSizeEnabled"] = load_game_size;
 
@@ -917,14 +1039,18 @@ void save(const std::filesystem::path& path) {
     data["GUI"]["showBackgroundImage"] = showBackgroundImage;
     data["Settings"]["consoleLanguage"] = m_language;
 
+    // Sorting of TOML sections
+    sortTomlSections(data);
+
     std::ofstream file(path, std::ios::binary);
     file << data;
     file.close();
+
     saveMainWindow(path);
 }
 
 void saveMainWindow(const std::filesystem::path& path) {
-    toml::value data;
+    toml::ordered_value data;
 
     std::error_code error;
     if (std::filesystem::exists(path, error)) {
@@ -932,7 +1058,8 @@ void saveMainWindow(const std::filesystem::path& path) {
             std::ifstream ifs;
             ifs.exceptions(std::ifstream::failbit | std::ifstream::badbit);
             ifs.open(path, std::ios_base::binary);
-            data = toml::parse(ifs, std::string{fmt::UTF(path.filename().u8string()).data});
+            data = toml::parse<toml::ordered_type_config>(
+                ifs, std::string{fmt::UTF(path.filename().u8string()).data});
         } catch (const std::exception& ex) {
             fmt::print("Exception trying to parse config file. Exception: {}\n", ex.what());
             return;
@@ -956,9 +1083,11 @@ void saveMainWindow(const std::filesystem::path& path) {
     data["GUI"]["geometry_y"] = main_window_geometry_y;
     data["GUI"]["geometry_w"] = main_window_geometry_w;
     data["GUI"]["geometry_h"] = main_window_geometry_h;
-    data["GUI"]["pkgDirs"] = m_pkg_viewer;
     data["GUI"]["elfDirs"] = m_elf_viewer;
     data["GUI"]["recentFiles"] = m_recent_files;
+
+    // Sorting of TOML sections
+    sortTomlSections(data);
 
     std::ofstream file(path, std::ios::binary);
     file << data;
@@ -968,6 +1097,7 @@ void saveMainWindow(const std::filesystem::path& path) {
 void setDefaultValues() {
     isHDRAllowed = false;
     isNeo = false;
+    isDevKit = false;
     isFullscreen = false;
     isTrophyPopupDisabled = false;
     playBGM = false;
@@ -976,9 +1106,9 @@ void setDefaultValues() {
     screenWidth = 1280;
     screenHeight = 720;
     logFilter = "";
-    logType = "async";
+    logType = "sync";
     userName = "shadPS4";
-    if (Common::isRelease) {
+    if (Common::g_is_release) {
         updateChannel = "Release";
     } else {
         updateChannel = "Nightly";
@@ -986,6 +1116,7 @@ void setDefaultValues() {
     chooseHomeTab = "General";
     cursorState = HideCursorState::Idle;
     cursorHideTimeout = 5;
+    trophyNotificationDuration = 6.0;
     backButtonBehavior = "left";
     useSpecialPad = false;
     specialPadClass = 1;
@@ -994,6 +1125,7 @@ void setDefaultValues() {
     isShowSplash = false;
     isAutoUpdate = false;
     isAlwaysShowChangelog = false;
+    isSideTrophy = "right";
     isNullGpu = false;
     shouldDumpShaders = false;
     vblankDivider = 1;
@@ -1007,7 +1139,6 @@ void setDefaultValues() {
     emulator_language = "en_US";
     m_language = 1;
     gpuId = -1;
-    separateupdatefolder = false;
     compatibilityData = false;
     checkCompatibilityOnStartup = false;
     backgroundImageOpacity = 50;

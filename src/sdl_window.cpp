@@ -10,7 +10,7 @@
 #include "common/assert.h"
 #include "common/config.h"
 #include "common/elf_info.h"
-#include "common/version.h"
+#include "core/debug_state.h"
 #include "core/libraries/kernel/time.h"
 #include "core/libraries/pad/pad.h"
 #include "imgui/renderer/imgui_core.h"
@@ -134,13 +134,17 @@ void SDLInputEngine::Init() {
             m_gyro_poll_rate = SDL_GetGamepadSensorDataRate(m_gamepad, SDL_SENSOR_GYRO);
             LOG_INFO(Input, "Gyro initialized, poll rate: {}", m_gyro_poll_rate);
         } else {
-            LOG_ERROR(Input, "Failed to initialize gyro controls for gamepad");
+            LOG_ERROR(Input, "Failed to initialize gyro controls for gamepad, error: {}",
+                      SDL_GetError());
+            SDL_SetGamepadSensorEnabled(m_gamepad, SDL_SENSOR_GYRO, false);
         }
         if (SDL_SetGamepadSensorEnabled(m_gamepad, SDL_SENSOR_ACCEL, true)) {
             m_accel_poll_rate = SDL_GetGamepadSensorDataRate(m_gamepad, SDL_SENSOR_ACCEL);
             LOG_INFO(Input, "Accel initialized, poll rate: {}", m_accel_poll_rate);
         } else {
-            LOG_ERROR(Input, "Failed to initialize accel controls for gamepad");
+            LOG_ERROR(Input, "Failed to initialize accel controls for gamepad, error: {}",
+                      SDL_GetError());
+            SDL_SetGamepadSensorEnabled(m_gamepad, SDL_SENSOR_ACCEL, false);
         }
     }
 
@@ -391,6 +395,25 @@ void WindowSDL::WaitEvent() {
         break;
     case SDL_EVENT_QUIT:
         is_open = false;
+        break;
+    case SDL_EVENT_TOGGLE_FULLSCREEN: {
+        if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN) {
+            SDL_SetWindowFullscreen(window, 0);
+        } else {
+            SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN);
+        }
+        break;
+    }
+    case SDL_EVENT_TOGGLE_PAUSE:
+        SDL_Log("Received SDL_EVENT_TOGGLE_PAUSE");
+
+        if (DebugState.IsGuestThreadsPaused()) {
+            SDL_Log("Game Resumed");
+            DebugState.ResumeGuestThreads();
+        } else {
+            SDL_Log("Game Paused");
+            DebugState.PauseGuestThreads();
+        }
         break;
     default:
         break;
