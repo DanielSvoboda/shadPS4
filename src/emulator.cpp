@@ -16,6 +16,9 @@
 #ifdef ENABLE_DISCORD_RPC
 #include "common/discord_rpc_handler.h"
 #endif
+#ifdef _WIN32
+#include <WinSock2.h>
+#endif
 #include "common/elf_info.h"
 #include "common/ntapi.h"
 #include "common/path_util.h"
@@ -46,6 +49,10 @@ Emulator::Emulator() {
 #ifdef _WIN32
     Common::NtApi::Initialize();
     SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
+    // need to init this in order for winsock2 to work
+    WORD versionWanted = MAKEWORD(2, 2);
+    WSADATA wsaData;
+    WSAStartup(versionWanted, &wsaData);
 #endif
 
     // Create stdin/stdout/stderr
@@ -91,9 +98,9 @@ void Emulator::Run(const std::filesystem::path& file, const std::vector<std::str
 
     // Applications expect to be run from /app0 so mount the file's parent path as app0.
     auto* mnt = Common::Singleton<Core::FileSys::MntPoints>::Instance();
-    mnt->Mount(game_folder, "/app0");
+    mnt->Mount(game_folder, "/app0", true);
     // Certain games may use /hostapp as well such as CUSA001100
-    mnt->Mount(game_folder, "/hostapp");
+    mnt->Mount(game_folder, "/hostapp", true);
 
     auto& game_info = Common::ElfInfo::Instance();
 
@@ -224,11 +231,15 @@ void Emulator::Run(const std::filesystem::path& file, const std::vector<std::str
         std::filesystem::create_directory(mount_data_dir);
     }
     mnt->Mount(mount_data_dir, "/data"); // should just exist, manually create with game serial
+
+    // Mounting temp folders
     const auto& mount_temp_dir = Common::FS::GetUserPath(Common::FS::PathType::TempDataDir) / id;
-    if (!std::filesystem::exists(mount_temp_dir)) {
-        std::filesystem::create_directory(mount_temp_dir);
+    if (std::filesystem::exists(mount_temp_dir)) {
+        // Temp folder should be cleared on each boot.
+        std::filesystem::remove_all(mount_temp_dir);
     }
-    mnt->Mount(mount_temp_dir, "/temp0"); // called in app_content ==> stat/mkdir
+    std::filesystem::create_directory(mount_temp_dir);
+    mnt->Mount(mount_temp_dir, "/temp0");
     mnt->Mount(mount_temp_dir, "/temp");
 
     const auto& mount_download_dir =
