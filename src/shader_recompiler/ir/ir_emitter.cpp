@@ -224,6 +224,14 @@ U32 IREmitter::GetVccHi() {
     return Inst<U32>(Opcode::GetVccHi);
 }
 
+U32 IREmitter::GetExecHi() {
+    return Inst<U32>(Opcode::GetExecHi);
+}
+
+U32 IREmitter::GetExecLo() {
+    return Inst<U32>(Opcode::GetExecLo);
+}
+
 U32 IREmitter::GetM0() {
     return Inst<U32>(Opcode::GetM0);
 }
@@ -252,6 +260,13 @@ void IREmitter::SetVccHi(const U32& value) {
     Inst(Opcode::SetVccHi, value);
 }
 
+void IREmitter::SetExecLo(const U32& value) {
+    Inst(Opcode::SetExecLo, value);
+}
+
+void IREmitter::SetExecHi(const U32& value) {
+    Inst(Opcode::SetExecHi, value);
+}
 void IREmitter::SetM0(const U32& value) {
     Inst(Opcode::SetM0, value);
 }

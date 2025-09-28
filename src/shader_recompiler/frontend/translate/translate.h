@@ -118,6 +118,7 @@ public:
     void S_MOV(const GcnInst& inst);
     void S_MOV_B64(const GcnInst& inst);
     void S_NOT_B64(const GcnInst& inst);
+    void S_WQM_B64(const GcnInst& inst);
     void S_BREV_B32(const GcnInst& inst);
     void S_BCNT1_I32_B32(const GcnInst& inst);
     void S_BCNT1_I32_B64(const GcnInst& inst);

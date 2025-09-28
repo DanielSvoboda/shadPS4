@@ -101,7 +101,7 @@ void Translator::EmitScalarAlu(const GcnInst& inst) {
         case Opcode::S_NOT_B64:
             return S_NOT_B64(inst);
         case Opcode::S_WQM_B64:
-            break;
+            return S_WQM_B64(inst);
         case Opcode::S_BREV_B32:
             return S_BREV_B32(inst);
         case Opcode::S_BCNT1_I32_B32:
@@ -656,6 +656,19 @@ void Translator::S_NOT_B64(const GcnInst& inst) {
     default:
         UNREACHABLE();
     }
+}
+
+void Translator::S_WQM_B64(const GcnInst& inst) {
+    const IR::U64 src0{GetSrc64(inst.src[0])};
+    const IR::U64 or1 = ir.BitwiseOr(src0, ir.ShiftRightLogical(src0, ir.Imm32(1)));
+    const IR::U64 or2 = ir.BitwiseOr(ir.ShiftRightLogical(src0, ir.Imm32(2)),
+                                     ir.ShiftRightLogical(src0, ir.Imm32(3)));
+    const IR::U64 quad_or = ir.BitwiseOr(or1, or2);
+    const IR::U64 quad_anchor_mask = ir.Imm64(0x1111111111111111ULL);
+    IR::U64 anchors = ir.BitwiseAnd(quad_or, quad_anchor_mask);
+    anchors = ir.IMul(anchors, ir.Imm64(0xFULL));
+    SetDst64(inst.dst[0], anchors);
+    ir.SetScc(ir.INotEqual(anchors, ir.Imm64(0ULL)));
 }
 
 void Translator::S_BREV_B32(const GcnInst& inst) {

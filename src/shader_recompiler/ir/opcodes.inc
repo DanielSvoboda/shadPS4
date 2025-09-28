@@ -87,6 +87,8 @@ OPCODE(GetExec,                                             U1,             Void
 OPCODE(GetVcc,                                              U1,             Void,                                                                           )
 OPCODE(GetVccLo,                                            U32,            Void,                                                                           )
 OPCODE(GetVccHi,                                            U32,            Void,                                                                           )
+OPCODE(GetExecHi,                                           U32,            Void,                                                                           )
+OPCODE(GetExecLo,                                           U32,            Void,                                                                           )
 OPCODE(GetM0,                                               U32,            Void,                                                                           )
 OPCODE(SetScc,                                              Void,           U1,                                                                             )
 OPCODE(SetExec,                                             Void,           U1,                                                                             )
@@ -94,6 +96,8 @@ OPCODE(SetVcc,                                              Void,           U1, 
 OPCODE(SetSccLo,                                            Void,           U32,                                                                            )
 OPCODE(SetVccLo,                                            Void,           U32,                                                                            )
 OPCODE(SetVccHi,                                            Void,           U32,                                                                            )
+OPCODE(SetExecLo,                                           Void,           U32,                                                                            )
+OPCODE(SetExecHi,                                           Void,           U32,                                                                            )
 OPCODE(SetM0,                                               Void,           U32,                                                                            )
 
 // Undefined
