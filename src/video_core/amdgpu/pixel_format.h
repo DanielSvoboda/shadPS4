@@ -44,6 +44,7 @@ enum class DataFormat : u32 {
     FormatBc5 = 39,
     FormatBc6 = 40,
     FormatBc7 = 41,
+    Format45_Reversed = 45,
     FormatFmask8_1 = 47,
     FormatFmask8_2 = 48,
     FormatFmask8_4 = 49,

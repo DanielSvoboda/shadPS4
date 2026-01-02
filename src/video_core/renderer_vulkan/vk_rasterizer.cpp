@@ -669,7 +669,8 @@ void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindin
             LOG_WARNING(Render_Vulkan, "Unexpected metadata read by a shader (texture)");
         }
 
-        if (tsharp.GetDataFmt() == AmdGpu::DataFormat::FormatInvalid) {
+        if (tsharp.GetDataFmt() == AmdGpu::DataFormat::FormatInvalid ||
+            tsharp.GetDataFmt() == AmdGpu::DataFormat::Format45_Reversed) {
             image_bindings.emplace_back(std::piecewise_construct, std::tuple{}, std::tuple{});
             continue;
         }
