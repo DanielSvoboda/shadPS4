@@ -214,7 +214,7 @@ void DynamicState::Commit(const Instance& instance, const vk::CommandBuffer& cmd
         // Note that this must be set in a command buffer even if depth test is disabled.
         cmdbuf.setDepthWriteEnable(depth_write_enabled);
     }
-    if (depth_test_enabled && dirty_state.depth_compare_op) {
+    if (dirty_state.depth_compare_op || dirty_state.depth_test_enabled) {
         dirty_state.depth_compare_op = false;
         cmdbuf.setDepthCompareOp(depth_compare_op);
     }
