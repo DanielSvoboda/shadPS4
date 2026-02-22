@@ -81,34 +81,34 @@ struct EqueueEvent {
     SceKernelEvent event;
     void* data = nullptr;
     std::chrono::steady_clock::time_point time_added;
-    std::chrono::microseconds timer_interval;
+    std::chrono::nanoseconds timer_interval;
     std::unique_ptr<boost::asio::steady_timer> timer;
 
-    void ResetTriggerState() {
-        is_triggered = false;
-    }
-
     void Clear() {
+        is_triggered = false;
         event.fflags = 0;
         event.data = 0;
     }
 
     void Trigger(void* data) {
         is_triggered = true;
-        event.fflags++;
         event.data = reinterpret_cast<uintptr_t>(data);
     }
 
     void TriggerUser(void* data) {
         is_triggered = true;
-        event.fflags++;
         event.udata = data;
+    }
+
+    void TriggerTimer() {
+        is_triggered = true;
+        event.data++;
     }
 
     void TriggerDisplay(void* data) {
         is_triggered = true;
         if (data != nullptr) {
-            auto event_data = static_cast<OrbisVideoOutEventData>(event.data);
+            auto event_data = std::bit_cast<OrbisVideoOutEventData>(event.data);
             auto event_hint_raw = reinterpret_cast<u64>(data);
             auto event_hint = static_cast<OrbisVideoOutEventHint>(event_hint_raw);
             if (event_hint.event_id == event.ident && event.ident != 0xfe) {
@@ -139,7 +139,7 @@ class EqueueInternal {
     struct SmallTimer {
         SceKernelEvent event;
         std::chrono::steady_clock::time_point added;
-        std::chrono::microseconds interval;
+        std::chrono::nanoseconds interval;
     };
 
 public:
