@@ -19,6 +19,12 @@ std::queue<OrbisSystemServiceEvent> g_event_queue;
 std::mutex g_event_queue_mutex;
 s32 g_sdk_version{};
 
+constexpr s32 LNC_ERR_CHECK_FALSE = static_cast<s32>(0x80940005);
+constexpr s32 LNC_ERR_NOT_INITIALIZED = static_cast<s32>(0x80940001);
+
+std::mutex g_lnc_add_local_process_mutex;
+std::atomic<u32> g_lnc_trace_bit_index{0};
+
 bool IsSplashVisible() {
     return EmulatorSettings.IsShowSplash() && g_splash_status;
 }
@@ -93,8 +99,34 @@ int PS4_SYSV_ABI sceLncUtilActivateCdlg() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceLncUtilAddLocalProcess() {
-    LOG_ERROR(Lib_SystemService, "(STUBBED) called");
+int PS4_SYSV_ABI sceLncUtilAddLocalProcess(u32 app_status, const char* path, u64 param2,
+                                           const Ps2EmuAddLocalProcessOptions* options) {
+    // if ((param_3 == 0) || (param_5 == 0))
+    if (path == nullptr) {
+        LOG_ERROR(Lib_SystemService, "LNC_CHECK::0x{:x} (path value is false)",
+                  LNC_ERR_CHECK_FALSE);
+
+        return LNC_ERR_CHECK_FALSE;
+    }
+
+    // if (*param_1 < 1)
+    if (false) {
+        LOG_ERROR(Lib_SystemService, "LNC_ISOK::0x{:x} (LNC is not initialized)",
+                  LNC_ERR_NOT_INITIALIZED);
+
+        return LNC_ERR_NOT_INITIALIZED;
+    }
+
+    // ps4 semáforo. HLE serializamos a chamada com mutex
+    std::scoped_lock lock{g_lnc_add_local_process_mutex};
+
+    // contador DAT_010452f0
+    const u32 trace_index = g_lnc_trace_bit_index.fetch_add(1, std::memory_order_relaxed);
+    const u64 trace_mask = 1ull << (trace_index & 0x3f);
+    LOG_INFO(Lib_SystemService,
+             "app_status={:#x}, path={}, param2={:#x}, options={}, trace_mask={:#x}", app_status,
+             path, param2, options != nullptr, trace_mask);
+
     return ORBIS_OK;
 }
 
@@ -188,8 +220,21 @@ int PS4_SYSV_ABI sceLncUtilGetAppLaunchedUser() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceLncUtilGetAppStatus() {
-    LOG_ERROR(Lib_SystemService, "(STUBBED) called");
+s32 PS4_SYSV_ABI sceLncUtilGetAppStatus(u64* out_status) {
+    LOG_INFO(Lib_SystemService, "called");
+
+    if (!out_status)
+        return LNC_ERR_CHECK_FALSE;
+
+    // if (g_lncContext.refCount < 1)
+    //     return LNC_ERR_NOT_INITIALIZED;
+
+    // std::lock_guard lock(g_lncContext.mutex);
+    // s32 ret = GetAppStatusInternal(g_lncContext.handle, out_status);
+
+    // if (ret < 0)
+    //     return ret;
+
     return ORBIS_OK;
 }
 
@@ -283,8 +328,13 @@ int PS4_SYSV_ABI sceLncUtilIsCpuBudgetOfExtraAudioDevicesAvailable() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceLncUtilIsPs2Emu() {
-    LOG_ERROR(Lib_SystemService, "(STUBBED) called");
+s32 PS4_SYSV_ABI sceLncUtilIsPs2Emu(u8* out_is_ps2_emu) {
+    LOG_INFO(Lib_SystemService, "called");
+    if (!out_is_ps2_emu) {
+        return LNC_ERR_CHECK_FALSE;
+    }
+
+    *out_is_ps2_emu = 1;
     return ORBIS_OK;
 }
 
@@ -2392,14 +2442,55 @@ int PS4_SYSV_ABI sceSystemServiceRequestReboot() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceSystemServiceAddLocalProcessForPs2Emu() {
-    LOG_ERROR(Lib_SystemService, "(STUBBED) called");
-    return ORBIS_OK;
+s32 PS4_SYSV_ABI sceSystemServiceAddLocalProcessForPs2Emu(const char* path, u64 param2,
+                                                          const void* param3) {
+    LOG_ERROR(Lib_SystemService, "patch= {}, param2= {}, param3= {}", path, param2, param3);
+
+    u8 is_ps2_emu = 0;
+    s32 ret = sceLncUtilIsPs2Emu(&is_ps2_emu);
+    if (ret < 0) {
+        LOG_ERROR(Lib_SystemService, "isPs2Emu failed: {:#x}", ret);
+        return ret;
+    }
+
+    if (is_ps2_emu == 0) {
+        LOG_ERROR(Lib_SystemService, "SYSTEM_SERVICE_CHECK::0x{:x} (isPs2Emu value is false)",
+                  LNC_ERR_CHECK_FALSE);
+        return LNC_ERR_CHECK_FALSE;
+    }
+
+    if (path == nullptr || std::strncmp(path, "/app0/", 6) != 0) {
+        LOG_ERROR(Lib_SystemService, "SYSTEM_SERVICE_CHECK::0x{:x} (isValidPath value is false)",
+                  LNC_ERR_CHECK_FALSE);
+        return LNC_ERR_CHECK_FALSE;
+    }
+
+    u64 app_status = 0;
+    ret = sceLncUtilGetAppStatus(&app_status);
+    if (ret < 0) {
+        LOG_ERROR(Lib_SystemService, "getAppStatus failed: {:#x}", ret);
+        return ret;
+    }
+
+    Ps2EmuAddLocalProcessOptions options{};
+    const Ps2EmuAddLocalProcessOptions* options_ptr = nullptr;
+
+    if (param3 != nullptr) {
+        options_ptr = &options;
+        (void)param3;
+    }
+
+    ret = sceLncUtilAddLocalProcess(static_cast<u32>(app_status), path, param2, options_ptr);
+    if (ret < 0) {
+        LOG_ERROR(Lib_SystemService,
+                  "sceSystemServiceAddLocalProcessForPs2Emu: addLocalProcess failed: {:#x}", ret);
+    }
+    return ret;
 }
 
 int PS4_SYSV_ABI sceSystemServiceGetParentSocketForPs2Emu() {
-    LOG_ERROR(Lib_SystemService, "(STUBBED) called");
-    return ORBIS_OK;
+    LOG_INFO(Lib_SystemService, "called");
+    return 3;
 }
 
 int PS4_SYSV_ABI sceSystemServiceKillLocalProcessForPs2Emu() {
@@ -2407,8 +2498,13 @@ int PS4_SYSV_ABI sceSystemServiceKillLocalProcessForPs2Emu() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceSystemServiceShowImposeMenuForPs2Emu() {
-    LOG_ERROR(Lib_SystemService, "(STUBBED) called");
+s32 PS4_SYSV_ABI sceSystemServiceShowImposeMenuForPs2Emu(u8 menu_index, void* reserved) {
+    LOG_INFO(Lib_SystemService, "called, menu={}", menu_index);
+
+    if (reserved != nullptr)
+        return ORBIS_SYSTEM_SERVICE_ERROR_PARAMETER;
+
+    // TODO
     return ORBIS_OK;
 }
 

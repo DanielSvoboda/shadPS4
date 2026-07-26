@@ -227,6 +227,7 @@ s32 loadModuleInternal(s32 index, s32 argc, const void* argv, s32* res_out) {
              {"libSceAudiodec.sprx", nullptr},
              {"libSceAudiodecCpu.sprx", nullptr},
              {"libSceAudiodecCpuDdp.sprx", nullptr},
+             {"libScePs2EmuMenuDialog.sprx", nullptr},
              {"libSceAudiodecCpuM4aac.sprx", nullptr},
              {"libSceAudiodecCpuDtsHdLbr.sprx", nullptr},
              {"libSceAudiodecCpuHevag.sprx", nullptr},

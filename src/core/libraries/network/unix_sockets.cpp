@@ -251,15 +251,47 @@ int UnixSocket::ReceiveMessage(OrbisNetMsghdr* msg, int flags) {
 int UnixSocket::ReceivePacket(void* buf, u32 len, int flags, OrbisNetSockaddr* from, u32* fromlen) {
     std::scoped_lock lock{receive_mutex};
     LOG_ERROR(Lib_Net, "called");
-    if (from != nullptr) {
-        sockaddr_un addr;
-        int res = recvfrom(sock, (char*)buf, len, flags, (sockaddr*)&addr, (socklen_t*)fromlen);
-        convertUnixSockaddrToOrbis((sockaddr*)&addr, from);
-        *fromlen = sizeof(OrbisNetSockaddrUn);
-        return ConvertReturnErrorCode(res);
-    } else {
-        return ConvertReturnErrorCode(recv(sock, (char*)buf, len, flags));
+
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(sock, &readfds);
+
+    timeval tv{};
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+
+    int sel = select(static_cast<int>(sock) + 1, &readfds, nullptr, nullptr, &tv);
+    if (sel <= 0) {
+        *Libraries::Kernel::__Error() = ORBIS_NET_EWOULDBLOCK;
+        return -1;
     }
+
+    if (from != nullptr) {
+        sockaddr_un addr{};
+#ifdef _WIN32
+        int addrlen = sizeof(addr);
+        int res = recvfrom(sock, (char*)buf, len, flags, (sockaddr*)&addr, &addrlen);
+        if (res >= 0) {
+            convertUnixSockaddrToOrbis((sockaddr*)&addr, from);
+            if (fromlen) {
+                *fromlen = sizeof(OrbisNetSockaddrUn);
+            }
+        }
+        return ConvertReturnErrorCode(res);
+#else
+        socklen_t addrlen = sizeof(addr);
+        int res = recvfrom(sock, (char*)buf, len, flags, (sockaddr*)&addr, &addrlen);
+        if (res >= 0) {
+            convertUnixSockaddrToOrbis((sockaddr*)&addr, from);
+            if (fromlen) {
+                *fromlen = sizeof(OrbisNetSockaddrUn);
+            }
+        }
+        return ConvertReturnErrorCode(res);
+#endif
+    }
+
+    return ConvertReturnErrorCode(recv(sock, (char*)buf, len, flags));
 }
 
 SocketPtr UnixSocket::Accept(OrbisNetSockaddr* addr, u32* addrlen) {

@@ -15,6 +15,15 @@ class SymbolsResolver;
 
 namespace Libraries::SystemService {
 
+struct Ps2EmuAddLocalProcessOptions {
+    u64 header = 0x0000000100000028ull; // local_78 = 0x100000028
+    u64 unk1 = 0xffffffffffffffffull;   // uStack_70 = -1
+    u32 unk2 = 0xffffffff;              // local_68 = -1
+    u8 unk3[12]{};                      // local_64 = zeroed
+    u32 unk4 = 0;                       // uStack_58 = 0
+    u32 unk5 = 0;                       // uStack_54 = 0
+};
+
 enum class OrbisSystemServiceParamId {
     Lang = 1,
     DateFormat = 2,
@@ -149,7 +158,8 @@ int PS4_SYSV_ABI sceLncUtilAcquireCpuBudgetOfExtraAudioDevices();
 int PS4_SYSV_ABI sceLncUtilAcquireCpuBudgetOfImeForBigApp();
 int PS4_SYSV_ABI sceLncUtilAcquireCpuBudgetOfInGameStore();
 int PS4_SYSV_ABI sceLncUtilActivateCdlg();
-int PS4_SYSV_ABI sceLncUtilAddLocalProcess();
+int PS4_SYSV_ABI sceLncUtilAddLocalProcess(u32 app_status, const char* path, u64 param2,
+                                           const Ps2EmuAddLocalProcessOptions* options);
 int PS4_SYSV_ABI sceLncUtilBlockAppSuspend();
 int PS4_SYSV_ABI sceLncUtilBlockingGetEventForDaemon();
 int PS4_SYSV_ABI sceLncUtilContinueApp();
@@ -168,7 +178,7 @@ int PS4_SYSV_ABI sceLncUtilGetAppId();
 int PS4_SYSV_ABI sceLncUtilGetAppIdOfBigApp();
 int PS4_SYSV_ABI sceLncUtilGetAppIdOfMiniApp();
 int PS4_SYSV_ABI sceLncUtilGetAppLaunchedUser();
-int PS4_SYSV_ABI sceLncUtilGetAppStatus();
+s32 PS4_SYSV_ABI sceLncUtilGetAppStatus(u64* out_status);
 int PS4_SYSV_ABI sceLncUtilGetAppStatusListForShellUIReboot();
 int PS4_SYSV_ABI sceLncUtilGetAppTitleId();
 int PS4_SYSV_ABI sceLncUtilGetAppType();
@@ -187,7 +197,7 @@ int PS4_SYSV_ABI sceLncUtilIsActiveCdlg();
 int PS4_SYSV_ABI sceLncUtilIsAppLaunched();
 int PS4_SYSV_ABI sceLncUtilIsAppSuspended();
 int PS4_SYSV_ABI sceLncUtilIsCpuBudgetOfExtraAudioDevicesAvailable();
-int PS4_SYSV_ABI sceLncUtilIsPs2Emu();
+s32 PS4_SYSV_ABI sceLncUtilIsPs2Emu(u8* out_is_ps2_emu);
 int PS4_SYSV_ABI sceLncUtilIsShellUiFgAndGameBgCpuMode();
 int PS4_SYSV_ABI sceLncUtilKickCoredumpOnlyProcMem();
 int PS4_SYSV_ABI sceLncUtilKillApp();
@@ -591,10 +601,11 @@ int PS4_SYSV_ABI sceSystemServiceDisableSuspendNotification();
 int PS4_SYSV_ABI sceSystemServiceEnableSuspendNotification();
 int PS4_SYSV_ABI sceSystemServiceRequestPowerOff();
 int PS4_SYSV_ABI sceSystemServiceRequestReboot();
-int PS4_SYSV_ABI sceSystemServiceAddLocalProcessForPs2Emu();
+s32 PS4_SYSV_ABI sceSystemServiceAddLocalProcessForPs2Emu(const char* path, u64 param2,
+                                                          const void* param3);
 int PS4_SYSV_ABI sceSystemServiceGetParentSocketForPs2Emu();
 int PS4_SYSV_ABI sceSystemServiceKillLocalProcessForPs2Emu();
-int PS4_SYSV_ABI sceSystemServiceShowImposeMenuForPs2Emu();
+s32 PS4_SYSV_ABI sceSystemServiceShowImposeMenuForPs2Emu(u8 menu_index, void* reserved);
 int PS4_SYSV_ABI sceSystemServiceSaveVideoToken();
 int PS4_SYSV_ABI sceSystemServiceLaunchStore();
 int PS4_SYSV_ABI sceSystemServiceTelemetrySetData();
