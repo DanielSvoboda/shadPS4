@@ -6,7 +6,7 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
-    
+
     abseilCppSource = {
       url = "github:abseil/abseil-cpp?ref=20250512.1";
       flake = false;
@@ -17,6 +17,24 @@
     { self, nixpkgs, abseilCppSource }:
     let
       pkgsLinux = nixpkgs.legacyPackages.x86_64-linux;
+      cmakeLists = builtins.readFile ./CMakeLists.txt;
+
+      cmakeListsSingleLine =
+        builtins.replaceStrings [ "\n" ] [ " " ] cmakeLists;
+
+      extractVersion = name:
+        builtins.head (
+          builtins.match
+            ".*set\\(${name} \"([0-9]+)\"\\).*"
+            cmakeListsSingleLine
+        );
+
+      emulatorVersionMajor = extractVersion "EMULATOR_VERSION_MAJOR";
+      emulatorVersionMinor = extractVersion "EMULATOR_VERSION_MINOR";
+      emulatorVersionPatch = extractVersion "EMULATOR_VERSION_PATCH";
+
+      version =
+        "${emulatorVersionMajor}.${emulatorVersionMinor}.${emulatorVersionPatch}";
 
     in
     {
@@ -66,7 +84,7 @@
 
               packages =
                 let
-                  # SDL3 requres extra libraries inside the devshell in order to pass CMake's configure.
+                  # SDL3 requires extra libraries inside the devshell in order to pass CMake's configure.
                   sdlConfigureDeps = [
                     libGL
                     jack1
@@ -93,7 +111,15 @@
                   clang-tools
                   cmake
                   pkg-config
-                ] ++ sdlConfigureDeps ++ lib.optionals enableDebugTooling [ renderdoc gef strace perf vulkan-tools ];
+                ]
+                ++ sdlConfigureDeps
+                ++ lib.optionals enableDebugTooling [
+                  renderdoc
+                  gef
+                  strace
+                  perf
+                  vulkan-tools
+                ];
 
               shellHook = ''
                 echo "Entering shadPS4 development shell!"
@@ -110,11 +136,25 @@
       packages.x86_64-linux =
         let
           buildSettings = {
-            "release" = { symbols = false; flag = "-DCMAKE_BUILD_TYPE=Release"; };
-            "relWithDebInfo" = { symbols = true; flag = "-DCMAKE_BUILD_TYPE=RelWithDebInfo"; };
-            "debug" = { symbols = true; flag = "-DCMAKE_BUILD_TYPE=Debug"; };
+            "release" = {
+              symbols = false;
+              flag = "-DCMAKE_BUILD_TYPE=Release";
+            };
+
+            "relWithDebInfo" = {
+              symbols = true;
+              flag = "-DCMAKE_BUILD_TYPE=RelWithDebInfo";
+            };
+
+            "debug" = {
+              symbols = true;
+              flag = "-DCMAKE_BUILD_TYPE=Debug";
+            };
           };
-          getBuildSettings = chosenBuild: buildSettings.${chosenBuild} or (abort "Build mode not valid! Use \"debug\", \"release\", or \"relWithDebInfo\".");
+
+          getBuildSettings = chosenBuild:
+            buildSettings.${chosenBuild}
+              or (abort "Build mode not valid! Use \"debug\", \"release\", or \"relWithDebInfo\".");
 
           build =
             { clangStdenv
@@ -167,8 +207,9 @@
             clangStdenv.mkDerivation (finalAttrs: {
               name = "${finalAttrs.pname}-${finalAttrs.version}-${finalAttrs.system}";
               pname = "shadps4";
-              version = "0.17.1";
+              version = version;
               system = "x86_64-linux";
+
               src = ./.;
 
               nativeBuildInputs = [
@@ -176,6 +217,7 @@
                 ninja
                 pkg-config
               ];
+
               buildInputs = [
                 boost
                 cli11
@@ -214,24 +256,44 @@
                 (lib.cmakeBool "ENABLE_SYSTEM_LIBRARIES" true)
                 "-DFETCHCONTENT_SOURCE_DIR_ABSL=${abseilCppSource}"
               ];
+
               dontStrip = (getBuildSettings releaseMode).symbols;
 
               # Cannot get the Branch name from the sandbox.
               # Getting the commit hash can still be acquired through self.
-              patchPhase = '' 
+              patchPhase = ''
                 substituteInPlace src/common/scm_rev.cpp.in \
                   --replace-fail "@GIT_BRANCH@" "${self.shortRev or "Dirty"}"
-                
+
                 substituteInPlace src/common/scm_rev.cpp.in \
                   --replace-fail "@GIT_DESC@" ""
               '';
             });
         in
         {
-          debug = pkgsLinux.callPackage build { releaseMode = "debug"; inherit abseilCppSource; };
-          release = pkgsLinux.callPackage build { releaseMode = "release"; inherit abseilCppSource; };
-          releaseWithDebInfo = pkgsLinux.callPackage build { releaseMode = "relWithDebInfo"; inherit abseilCppSource; };
-          default = pkgsLinux.callPackage build { releaseMode = "relWithDebInfo"; inherit abseilCppSource; };
+          debug =
+            pkgsLinux.callPackage build {
+              releaseMode = "debug";
+              inherit abseilCppSource;
+            };
+
+          release =
+            pkgsLinux.callPackage build {
+              releaseMode = "release";
+              inherit abseilCppSource;
+            };
+
+          releaseWithDebInfo =
+            pkgsLinux.callPackage build {
+              releaseMode = "relWithDebInfo";
+              inherit abseilCppSource;
+            };
+
+          default =
+            pkgsLinux.callPackage build {
+              releaseMode = "relWithDebInfo";
+              inherit abseilCppSource;
+            };
         };
     };
 }
