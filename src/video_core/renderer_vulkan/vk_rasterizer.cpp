@@ -723,19 +723,35 @@ void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindin
         const auto data_fmt = tsharp.GetDataFmt();
         const auto num_fmt = tsharp.GetNumberFmt();
         if (tsharp.Address() == 0 || data_fmt == AmdGpu::DataFormat::FormatInvalid) {
-            image_bindings.emplace_back(std::piecewise_construct, std::tuple{}, std::tuple{});
+            VideoCore::TextureCache::ImageDesc invalid_desc{};
+            invalid_desc.type = image_desc.is_written
+                                    ? VideoCore::TextureCache::BindingType::Storage
+                                    : VideoCore::TextureCache::BindingType::Texture;
+
+            image_bindings.emplace_back(std::piecewise_construct, std::tuple{},
+                                        std::tuple{invalid_desc});
+
             image_descriptor_array_sizes.push_back(1);
             continue;
         }
 
         if (!memory->IsValidGpuMapping(tsharp.Address(), 0) ||
             !magic_enum::enum_contains(data_fmt) || !magic_enum::enum_contains(num_fmt)) {
+
             LOG_WARNING(Render_Vulkan,
                         "Rejecting invalid T# address={:#x}, pitch={}, width={}, "
                         "data_format={}, num_format={}",
                         tsharp.Address(), tsharp.pitch, tsharp.width, static_cast<u32>(data_fmt),
                         static_cast<u32>(num_fmt));
-            image_bindings.emplace_back(std::piecewise_construct, std::tuple{}, std::tuple{});
+
+            VideoCore::TextureCache::ImageDesc invalid_desc{};
+            invalid_desc.type = image_desc.is_written
+                                    ? VideoCore::TextureCache::BindingType::Storage
+                                    : VideoCore::TextureCache::BindingType::Texture;
+
+            image_bindings.emplace_back(std::piecewise_construct, std::tuple{},
+                                        std::tuple{invalid_desc});
+
             image_descriptor_array_sizes.push_back(1);
             continue;
         }
@@ -792,33 +808,51 @@ void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindin
             auto& image = texture_cache.GetImage(image_id);
             auto& image_view = texture_cache.FindTexture(image_id, desc);
 
-            // The image is either bound as storage in a separate descriptor or bound as render
-            // target in feedback loop. Depth images are excluded because they can't be bound as
-            // storage and feedback loop doesn't make sense for them
-            if ((image.binding.force_general || image.binding.is_target) &&
-                !image.info.props.is_depth) {
-                image.Transit(instance.IsAttachmentFeedbackLoopLayoutSupported() &&
-                                      image.binding.is_target
+            if (is_storage) {
+                // Storage images used by compute must track shader reads/writes.
+                // In particular, this must happen before the generic force_general
+                // path, otherwise a sampled+storage image gets tracked as a
+                // color-attachment feedback loop and the following dispatch misses
+                // the dependency on the previous shader write.
+                image.Transit(vk::ImageLayout::eGeneral,
+                              vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite,
+                              desc.view_info.range);
+            } else if (image.binding.is_target && !image.info.props.is_depth) {
+                // Color attachment feedback loop.
+                image.Transit(instance.IsAttachmentFeedbackLoopLayoutSupported()
                                   ? vk::ImageLayout::eAttachmentFeedbackLoopOptimalEXT
                                   : vk::ImageLayout::eGeneral,
                               vk::AccessFlagBits2::eShaderRead |
-                                  (image.info.props.is_depth
-                                       ? vk::AccessFlagBits2::eDepthStencilAttachmentWrite
-                                       : vk::AccessFlagBits2::eColorAttachmentWrite |
-                                             vk::AccessFlagBits2::eColorAttachmentRead),
+                                  vk::AccessFlagBits2::eColorAttachmentWrite |
+                                  vk::AccessFlagBits2::eColorAttachmentRead,
                               {});
+            } else if (image.binding.force_general && !image.info.props.is_depth) {
+                // The image is shared by sampled/storage bindings, but this binding
+                // is the sampled side. Keep GENERAL while tracking it as a shader read.
+                image.Transit(vk::ImageLayout::eGeneral, vk::AccessFlagBits2::eShaderRead,
+                              desc.view_info.range);
             } else {
-                if (is_storage) {
-                    image.Transit(vk::ImageLayout::eGeneral,
-                                  vk::AccessFlagBits2::eShaderRead |
-                                      vk::AccessFlagBits2::eShaderWrite,
-                                  desc.view_info.range);
+                if (image.info.props.is_depth) {
+                    const bool stencil_attachment = image.binding.is_target &&
+                                                    image.info.props.has_stencil &&
+                                                    liverpool->regs.depth_control.stencil_enable;
+
+                    const auto new_layout =
+                        stencil_attachment ? vk::ImageLayout::eDepthReadOnlyStencilAttachmentOptimal
+                        : image.info.props.has_stencil
+                            ? vk::ImageLayout::eDepthStencilReadOnlyOptimal
+                            : vk::ImageLayout::eDepthReadOnlyOptimal;
+
+                    const auto access = stencil_attachment
+                                            ? vk::AccessFlagBits2::eShaderRead |
+                                                  vk::AccessFlagBits2::eDepthStencilAttachmentRead |
+                                                  vk::AccessFlagBits2::eDepthStencilAttachmentWrite
+                                            : vk::AccessFlagBits2::eShaderRead;
+
+                    image.Transit(new_layout, access, desc.view_info.range);
                 } else {
-                    const auto new_layout = image.info.props.is_depth
-                                                ? vk::ImageLayout::eDepthStencilReadOnlyOptimal
-                                                : vk::ImageLayout::eShaderReadOnlyOptimal;
-                    image.Transit(new_layout, vk::AccessFlagBits2::eShaderRead,
-                                  desc.view_info.range);
+                    image.Transit(vk::ImageLayout::eShaderReadOnlyOptimal,
+                                  vk::AccessFlagBits2::eShaderRead, desc.view_info.range);
                 }
             }
             image.usage.storage |= is_storage;
@@ -1009,6 +1043,7 @@ void Rasterizer::DepthStencilCopy(bool is_depth, bool is_stencil) {
     auto read_desc = VideoCore::TextureCache::ImageDesc(
         regs.depth_buffer, regs.depth_view, regs.depth_control,
         regs.depth_htile_data_base.GetAddress(), liverpool->last_db_extent, false);
+
     auto write_desc = VideoCore::TextureCache::ImageDesc(
         regs.depth_buffer, regs.depth_view, regs.depth_control,
         regs.depth_htile_data_base.GetAddress(), liverpool->last_db_extent, true);
@@ -1027,13 +1062,16 @@ void Rasterizer::DepthStencilCopy(bool is_depth, bool is_stencil) {
 
     read_image.Transit(vk::ImageLayout::eTransferSrcOptimal, vk::AccessFlagBits2::eTransferRead,
                        sub_range);
+
     write_image.Transit(vk::ImageLayout::eTransferDstOptimal, vk::AccessFlagBits2::eTransferWrite,
                         sub_range);
 
     auto aspect_mask = vk::ImageAspectFlags(0);
+
     if (is_depth) {
         aspect_mask |= vk::ImageAspectFlagBits::eDepth;
     }
+
     if (is_stencil) {
         aspect_mask |= vk::ImageAspectFlagBits::eStencil;
     }
@@ -1047,6 +1085,7 @@ void Rasterizer::DepthStencilCopy(bool is_depth, bool is_stencil) {
                 .layerCount = sub_range.extent.layers,
             },
         .srcOffset = {0, 0, 0},
+
         .dstSubresource =
             {
                 .aspectMask = aspect_mask,
@@ -1055,8 +1094,15 @@ void Rasterizer::DepthStencilCopy(bool is_depth, bool is_stencil) {
                 .layerCount = sub_range.extent.layers,
             },
         .dstOffset = {0, 0, 0},
-        .extent = {write_image.info.size.width, write_image.info.size.height, 1},
+
+        .extent =
+            {
+                write_image.info.size.width,
+                write_image.info.size.height,
+                1,
+            },
     };
+
     scheduler.CommandBuffer().copyImage(read_image.GetImage(), vk::ImageLayout::eTransferSrcOptimal,
                                         write_image.GetImage(),
                                         vk::ImageLayout::eTransferDstOptimal, region);
@@ -1284,11 +1330,12 @@ void Rasterizer::UpdateDepthStencilState() const {
     const auto depth_test_enabled =
         regs.depth_control.depth_enable && regs.depth_buffer.DepthValid();
     dynamic_state.SetDepthTestEnabled(depth_test_enabled);
-    if (depth_test_enabled) {
-        dynamic_state.SetDepthWriteEnabled(regs.depth_control.depth_write_enable &&
-                                           !regs.depth_render_control.depth_clear_enable);
-        dynamic_state.SetDepthCompareOp(LiverpoolToVK::CompareOp(regs.depth_control.depth_func));
-    }
+
+    dynamic_state.SetDepthWriteEnabled(depth_test_enabled &&
+                                       regs.depth_control.depth_write_enable &&
+                                       !regs.depth_render_control.depth_clear_enable);
+
+    dynamic_state.SetDepthCompareOp(LiverpoolToVK::CompareOp(regs.depth_control.depth_func));
 
     const auto depth_bounds_test_enabled = regs.depth_control.depth_bounds_enable;
     dynamic_state.SetDepthBoundsTestEnabled(depth_bounds_test_enabled);
@@ -1309,56 +1356,74 @@ void Rasterizer::UpdateDepthStencilState() const {
     const auto stencil_test_enabled =
         regs.depth_control.stencil_enable && regs.depth_buffer.StencilValid();
     dynamic_state.SetStencilTestEnabled(stencil_test_enabled);
-    if (stencil_test_enabled) {
-        const StencilOps front_ops{
-            .fail_op = LiverpoolToVK::StencilOp(regs.stencil_control.stencil_fail_front),
-            .pass_op = LiverpoolToVK::StencilOp(regs.stencil_control.stencil_zpass_front),
-            .depth_fail_op = LiverpoolToVK::StencilOp(regs.stencil_control.stencil_zfail_front),
-            .compare_op = LiverpoolToVK::CompareOp(regs.depth_control.stencil_ref_func),
-        };
-        const StencilOps back_ops = regs.depth_control.backface_enable ? StencilOps{
-            .fail_op = LiverpoolToVK::StencilOp(regs.stencil_control.stencil_fail_back),
-            .pass_op = LiverpoolToVK::StencilOp(regs.stencil_control.stencil_zpass_back),
-            .depth_fail_op = LiverpoolToVK::StencilOp(regs.stencil_control.stencil_zfail_back),
-            .compare_op = LiverpoolToVK::CompareOp(regs.depth_control.stencil_bf_func),
-        } : front_ops;
-        dynamic_state.SetStencilOps(front_ops, back_ops);
 
-        const bool stencil_clear = regs.depth_render_control.stencil_clear_enable;
-        const auto front = regs.stencil_ref_front;
-        const auto back =
-            regs.depth_control.backface_enable ? regs.stencil_ref_back : regs.stencil_ref_front;
-        // GCN REPLACE_OP writes DB_STENCILREFMASK.STENCILOPVAL, so a face whose stencil ops
-        // include ReplaceOp takes its Vulkan reference from op_val.
-        const auto& sc = regs.stencil_control;
-        const auto uses_op_val = [](AmdGpu::StencilFunc fail, AmdGpu::StencilFunc zpass,
-                                    AmdGpu::StencilFunc zfail) {
-            return fail == AmdGpu::StencilFunc::ReplaceOp ||
-                   zpass == AmdGpu::StencilFunc::ReplaceOp ||
-                   zfail == AmdGpu::StencilFunc::ReplaceOp;
-        };
-        const bool front_op =
-            uses_op_val(sc.stencil_fail_front, sc.stencil_zpass_front, sc.stencil_zfail_front);
-        const bool back_op =
-            regs.depth_control.backface_enable
-                ? uses_op_val(sc.stencil_fail_back, sc.stencil_zpass_back, sc.stencil_zfail_back)
-                : front_op;
-        const auto ref_conflict = [](AmdGpu::CompareFunc func, const AmdGpu::StencilRefMask& ref) {
-            return func != AmdGpu::CompareFunc::Always && func != AmdGpu::CompareFunc::Never &&
-                   ref.stencil_test_val != ref.stencil_op_val;
-        };
-        if ((front_op && ref_conflict(regs.depth_control.stencil_ref_func, front)) ||
-            (back_op && regs.depth_control.backface_enable &&
-             ref_conflict(regs.depth_control.stencil_bf_func, back))) {
-            LOG_WARNING(Render_Vulkan, "Stencil test requires test_val while ReplaceOp requires "
-                                       "op_val; the stencil test will use op_val");
-        }
-        dynamic_state.SetStencilReferences(front_op ? front.stencil_op_val : front.stencil_test_val,
-                                           back_op ? back.stencil_op_val : back.stencil_test_val);
-        dynamic_state.SetStencilWriteMasks(!stencil_clear ? front.stencil_write_mask : 0U,
-                                           !stencil_clear ? back.stencil_write_mask : 0U);
-        dynamic_state.SetStencilCompareMasks(front.stencil_mask, back.stencil_mask);
+    const StencilOps front_ops{
+        .fail_op = LiverpoolToVK::StencilOp(regs.stencil_control.stencil_fail_front),
+        .pass_op = LiverpoolToVK::StencilOp(regs.stencil_control.stencil_zpass_front),
+        .depth_fail_op = LiverpoolToVK::StencilOp(regs.stencil_control.stencil_zfail_front),
+        .compare_op = LiverpoolToVK::CompareOp(regs.depth_control.stencil_ref_func),
+    };
+
+    const StencilOps back_ops =
+    regs.depth_control.backface_enable
+        ? StencilOps{
+              .fail_op =
+                  LiverpoolToVK::StencilOp(regs.stencil_control.stencil_fail_back),
+              .pass_op =
+                  LiverpoolToVK::StencilOp(regs.stencil_control.stencil_zpass_back),
+              .depth_fail_op =
+                  LiverpoolToVK::StencilOp(regs.stencil_control.stencil_zfail_back),
+              .compare_op =
+                  LiverpoolToVK::CompareOp(regs.depth_control.stencil_bf_func),
+          }
+        : front_ops;
+
+    dynamic_state.SetStencilOps(front_ops, back_ops);
+
+    const bool stencil_clear = regs.depth_render_control.stencil_clear_enable;
+
+    const auto front = regs.stencil_ref_front;
+    const auto back =
+        regs.depth_control.backface_enable ? regs.stencil_ref_back : regs.stencil_ref_front;
+
+    // GCN REPLACE_OP writes DB_STENCILREFMASK.STENCILOPVAL, so a face whose
+    // stencil ops include ReplaceOp takes its Vulkan reference from op_val.
+    const auto& sc = regs.stencil_control;
+
+    const auto uses_op_val = [](AmdGpu::StencilFunc fail, AmdGpu::StencilFunc zpass,
+                                AmdGpu::StencilFunc zfail) {
+        return fail == AmdGpu::StencilFunc::ReplaceOp || zpass == AmdGpu::StencilFunc::ReplaceOp ||
+               zfail == AmdGpu::StencilFunc::ReplaceOp;
+    };
+
+    const bool front_op =
+        uses_op_val(sc.stencil_fail_front, sc.stencil_zpass_front, sc.stencil_zfail_front);
+
+    const bool back_op =
+        regs.depth_control.backface_enable
+            ? uses_op_val(sc.stencil_fail_back, sc.stencil_zpass_back, sc.stencil_zfail_back)
+            : front_op;
+
+    const auto ref_conflict = [](AmdGpu::CompareFunc func, const AmdGpu::StencilRefMask& ref) {
+        return func != AmdGpu::CompareFunc::Always && func != AmdGpu::CompareFunc::Never &&
+               ref.stencil_test_val != ref.stencil_op_val;
+    };
+
+    if (stencil_test_enabled &&
+        ((front_op && ref_conflict(regs.depth_control.stencil_ref_func, front)) ||
+         (back_op && regs.depth_control.backface_enable &&
+          ref_conflict(regs.depth_control.stencil_bf_func, back)))) {
+        LOG_WARNING(Render_Vulkan, "Stencil test requires test_val while ReplaceOp requires "
+                                   "op_val; the stencil test will use op_val");
     }
+
+    dynamic_state.SetStencilReferences(front_op ? front.stencil_op_val : front.stencil_test_val,
+                                       back_op ? back.stencil_op_val : back.stencil_test_val);
+
+    dynamic_state.SetStencilWriteMasks(!stencil_clear ? front.stencil_write_mask : 0U,
+                                       !stencil_clear ? back.stencil_write_mask : 0U);
+
+    dynamic_state.SetStencilCompareMasks(front.stencil_mask, back.stencil_mask);
 }
 
 void Rasterizer::UpdatePrimitiveState(const bool is_indexed) const {
