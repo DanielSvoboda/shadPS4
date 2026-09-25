@@ -33,6 +33,11 @@ int P2PSocket::Close() {
     return result;
 }
 
+int P2PSocket::Shutdown(int how) {
+    LOG_ERROR(Lib_Net, "(STUBBED) called");
+    return 0;
+}
+
 int P2PSocket::SetSocketOptions(int level, int optname, const void* optval, u32 optlen) {
     if (!m_transport) {
         *Libraries::Kernel::__Error() = ORBIS_NET_EBADF;
