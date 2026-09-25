@@ -126,9 +126,10 @@ struct PosixSocket : public Socket {
 };
 
 struct P2PSocket : public Socket {
-    explicit P2PSocket(int domain, int type, int protocol) : Socket(domain, type, protocol) {}
+    explicit P2PSocket(int domain, int type, int protocol);
+
     bool IsValid() const override {
-        return true;
+        return m_transport && m_transport->IsValid();
     }
     int Close() override;
     int SetSocketOptions(int level, int optname, const void* optval, u32 optlen) override;
@@ -145,9 +146,10 @@ struct P2PSocket : public Socket {
     int GetSocketAddress(OrbisNetSockaddr* name, u32* namelen) override;
     int GetPeerName(OrbisNetSockaddr* addr, u32* namelen) override;
     int fstat(Libraries::Kernel::OrbisKernelStat* stat) override;
-    std::optional<net_socket> Native() override {
-        return {};
-    }
+    std::optional<net_socket> Native() override;
+
+private:
+    SocketPtr m_transport;
 };
 
 struct UnixSocket : public Socket {

@@ -806,7 +806,7 @@ int PS4_SYSV_ABI sceNetEpollControl(OrbisNetId epollid, OrbisNetEpollFlag op, Or
         return ORBIS_NET_ERROR_EBADF;
     }
     auto epoll = file->epoll;
-    LOG_WARNING(Lib_Net, "called, epollid = {} ({}), op = {}, id = {}", epollid, epoll->name,
+    LOG_DEBUG(Lib_Net, "called, epollid = {} ({}), op = {}, id = {}", epollid, epoll->name,
                 magic_enum::enum_name(op), id);
 
     auto find_id = [&](OrbisNetId id) {
@@ -835,8 +835,7 @@ int PS4_SYSV_ABI sceNetEpollControl(OrbisNetId epollid, OrbisNetEpollFlag op, Or
         case Core::FileSys::FileType::Socket: {
             auto native_handle = file->socket->Native();
             if (!native_handle) {
-                // P2P socket, cannot be added to epoll
-                LOG_ERROR(Lib_Net, "P2P socket cannot be added to epoll (unimplemented)");
+                LOG_ERROR(Lib_Net, "Socket has no native handle");
                 *sceNetErrnoLoc() = ORBIS_NET_EBADF;
                 return ORBIS_NET_ERROR_EBADF;
             }
@@ -885,8 +884,7 @@ int PS4_SYSV_ABI sceNetEpollControl(OrbisNetId epollid, OrbisNetEpollFlag op, Or
         case Core::FileSys::FileType::Socket: {
             auto native_handle = file->socket->Native();
             if (!native_handle) {
-                // P2P socket, cannot be modified in epoll
-                LOG_ERROR(Lib_Net, "P2P socket cannot be modified in epoll (unimplemented)");
+                LOG_ERROR(Lib_Net, "Socket has no native handle");
                 *sceNetErrnoLoc() = ORBIS_NET_EBADF;
                 return ORBIS_NET_ERROR_EBADF;
             }
@@ -929,8 +927,7 @@ int PS4_SYSV_ABI sceNetEpollControl(OrbisNetId epollid, OrbisNetEpollFlag op, Or
         case Core::FileSys::FileType::Socket: {
             auto native_handle = file->socket->Native();
             if (!native_handle) {
-                // P2P socket, cannot be removed from epoll
-                LOG_ERROR(Lib_Net, "P2P socket cannot be removed from epoll (unimplemented)");
+                LOG_ERROR(Lib_Net, "Socket has no native handle");
                 *sceNetErrnoLoc() = ORBIS_NET_EBADF;
                 return ORBIS_NET_ERROR_EBADF;
             }
@@ -961,7 +958,7 @@ int PS4_SYSV_ABI sceNetEpollControl(OrbisNetId epollid, OrbisNetEpollFlag op, Or
 }
 
 int PS4_SYSV_ABI sceNetEpollCreate(const char* name, int flags) {
-    LOG_INFO(Lib_Net, "called, name = {}, flags = {}", name, flags);
+    LOG_DEBUG(Lib_Net, "called, name = {}, flags = {}", name, flags);
     if (flags != 0) {
         *sceNetErrnoLoc() = ORBIS_NET_EINVAL;
         return ORBIS_NET_ERROR_EINVAL;
