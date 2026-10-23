@@ -391,8 +391,7 @@ int PS4_SYSV_ABI posix_pthread_condattr_setclock(PthreadCondAttrT* attr, ClockId
     if (attr == nullptr || *attr == nullptr) {
         return POSIX_EINVAL;
     }
-    if (clock_id != ClockId::Realtime && clock_id != ClockId::Virtual &&
-        clock_id != ClockId::Prof && clock_id != ClockId::Monotonic) {
+    if (clock_id != ClockId::Realtime && clock_id != ClockId::Monotonic) {
         return POSIX_EINVAL;
     }
     (*attr)->c_clockid = clock_id;

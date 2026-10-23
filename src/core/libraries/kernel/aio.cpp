@@ -19,6 +19,10 @@ static constexpr s32 ORBIS_KERNEL_AIO_MAX_QUEUES = 512;
 static s32* id_state;
 static s32 id_index;
 
+static bool IsValidAioId(OrbisKernelAioSubmitId id) {
+    return id >= 0 && id < ORBIS_KERNEL_AIO_MAX_QUEUES;
+}
+
 s32 PS4_SYSV_ABI sceKernelAioInitializeImpl(void* p, s32 size) {
     return 0;
 }
@@ -27,16 +31,22 @@ s32 PS4_SYSV_ABI sceKernelAioDeleteRequest(OrbisKernelAioSubmitId id, s32* ret) 
     if (ret == nullptr) {
         return ORBIS_KERNEL_ERROR_EFAULT;
     }
+    if (!IsValidAioId(id)) {
+        return ORBIS_KERNEL_ERROR_EINVAL;
+    }
     id_state[id] = ORBIS_KERNEL_AIO_STATE_ABORTED;
     *ret = 0;
     return 0;
 }
 
 s32 PS4_SYSV_ABI sceKernelAioDeleteRequests(OrbisKernelAioSubmitId id[], s32 num, s32 ret[]) {
-    if (ret == nullptr) {
+    if (ret == nullptr || id == nullptr) {
         return ORBIS_KERNEL_ERROR_EFAULT;
     }
     for (s32 i = 0; i < num; i++) {
+        if (!IsValidAioId(id[i])) {
+            return ORBIS_KERNEL_ERROR_EINVAL;
+        }
         id_state[id[i]] = ORBIS_KERNEL_AIO_STATE_ABORTED;
         ret[i] = 0;
     }
@@ -47,15 +57,21 @@ s32 PS4_SYSV_ABI sceKernelAioPollRequest(OrbisKernelAioSubmitId id, s32* state) 
     if (state == nullptr) {
         return ORBIS_KERNEL_ERROR_EFAULT;
     }
+    if (!IsValidAioId(id)) {
+        return ORBIS_KERNEL_ERROR_EINVAL;
+    }
     *state = id_state[id];
     return 0;
 }
 
 s32 PS4_SYSV_ABI sceKernelAioPollRequests(OrbisKernelAioSubmitId id[], s32 num, s32 state[]) {
-    if (state == nullptr) {
+    if (state == nullptr || id == nullptr) {
         return ORBIS_KERNEL_ERROR_EFAULT;
     }
     for (s32 i = 0; i < num; i++) {
+        if (!IsValidAioId(id[i])) {
+            return ORBIS_KERNEL_ERROR_EINVAL;
+        }
         state[i] = id_state[id[i]];
     }
 
@@ -67,6 +83,9 @@ s32 PS4_SYSV_ABI sceKernelAioCancelRequest(OrbisKernelAioSubmitId id, s32* state
         return ORBIS_KERNEL_ERROR_EFAULT;
     }
     if (id) {
+        if (!IsValidAioId(id)) {
+            return ORBIS_KERNEL_ERROR_EINVAL;
+        }
         id_state[id] = ORBIS_KERNEL_AIO_STATE_ABORTED;
         *state = ORBIS_KERNEL_AIO_STATE_ABORTED;
     } else {
@@ -76,11 +95,14 @@ s32 PS4_SYSV_ABI sceKernelAioCancelRequest(OrbisKernelAioSubmitId id, s32* state
 }
 
 s32 PS4_SYSV_ABI sceKernelAioCancelRequests(OrbisKernelAioSubmitId id[], s32 num, s32 state[]) {
-    if (state == nullptr) {
+    if (state == nullptr || id == nullptr) {
         return ORBIS_KERNEL_ERROR_EFAULT;
     }
     for (s32 i = 0; i < num; i++) {
         if (id[i]) {
+            if (!IsValidAioId(id[i])) {
+                return ORBIS_KERNEL_ERROR_EINVAL;
+            }
             id_state[id[i]] = ORBIS_KERNEL_AIO_STATE_ABORTED;
             state[i] = ORBIS_KERNEL_AIO_STATE_ABORTED;
         } else {
@@ -95,6 +117,9 @@ s32 PS4_SYSV_ABI sceKernelAioWaitRequest(OrbisKernelAioSubmitId id, s32* state, 
     if (state == nullptr) {
         return ORBIS_KERNEL_ERROR_EFAULT;
     }
+    if (!IsValidAioId(id)) {
+        return ORBIS_KERNEL_ERROR_EINVAL;
+    }
     u32 timer = 0;
 
     s32 timeout = 0;
@@ -103,7 +128,7 @@ s32 PS4_SYSV_ABI sceKernelAioWaitRequest(OrbisKernelAioSubmitId id, s32* state, 
         sceKernelUsleep(10);
 
         timer += 10;
-        if (*usec) {
+        if (usec != nullptr && *usec) {
             if (timer > *usec) {
                 timeout = 1;
                 break;
@@ -120,7 +145,7 @@ s32 PS4_SYSV_ABI sceKernelAioWaitRequest(OrbisKernelAioSubmitId id, s32* state, 
 
 s32 PS4_SYSV_ABI sceKernelAioWaitRequests(OrbisKernelAioSubmitId id[], s32 num, s32 state[],
                                           u32 mode, u32* usec) {
-    if (state == nullptr) {
+    if (state == nullptr || id == nullptr) {
         return ORBIS_KERNEL_ERROR_EFAULT;
     }
     u32 timer = 0;
@@ -128,12 +153,15 @@ s32 PS4_SYSV_ABI sceKernelAioWaitRequests(OrbisKernelAioSubmitId id[], s32 num, 
     s32 completion = 0;
 
     for (s32 i = 0; i < num; i++) {
+        if (!IsValidAioId(id[i])) {
+            return ORBIS_KERNEL_ERROR_EINVAL;
+        }
         if (!completion && !timeout) {
             while (id_state[id[i]] == ORBIS_KERNEL_AIO_STATE_PROCESSING) {
                 sceKernelUsleep(10);
                 timer += 10;
 
-                if (*usec) {
+                if (usec != nullptr && *usec) {
                     if (timer > *usec) {
                         timeout = 1;
                         break;

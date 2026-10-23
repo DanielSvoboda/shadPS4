@@ -136,6 +136,7 @@ s32 VdecDecoder::Decode(const OrbisVideodec2InputData& input_data,
     output_info.is_valid = true;
     output_info.is_error_frame = false;
     output_info.picture_count = 1; // TODO: 2 pictures for interlaced video
+    output_info.is_discarded_frame = false;
     output_info.codec_type = is_avc ? OrbisVideodec2CodecType::Avc : OrbisVideodec2CodecType::Hevc;
     output_info.frame_width = width;
     output_info.frame_pitch = pitch;
@@ -221,6 +222,7 @@ s32 VdecDecoder::Flush(OrbisVideodec2FrameBuffer& frame_buffer,
     output_info.is_valid = true;
     output_info.is_error_frame = false;
     output_info.picture_count = 1; // TODO: 2 pictures for interlaced video
+    output_info.is_discarded_frame = false;
     output_info.codec_type = is_avc ? OrbisVideodec2CodecType::Avc : OrbisVideodec2CodecType::Hevc;
     output_info.frame_width = width;
     output_info.frame_pitch = pitch;

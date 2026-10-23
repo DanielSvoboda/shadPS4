@@ -140,13 +140,23 @@ s32 PS4_SYSV_ABI sceVideoOutRegisterBuffers(s32 handle, s32 startIndex, void* co
 
 s32 PS4_SYSV_ABI sceVideoOutSetFlipRate(s32 handle, s32 rate) {
     LOG_TRACE(Lib_VideoOut, "called");
-    driver->GetPort(handle)->flip_rate = rate;
+    auto* port = driver->GetPort(handle);
+    if (port == nullptr) {
+        return ORBIS_VIDEO_OUT_ERROR_INVALID_HANDLE;
+    }
+    if (rate < 0 || rate > 2) {
+        return ORBIS_VIDEO_OUT_ERROR_INVALID_VALUE;
+    }
+    port->flip_rate = rate;
     return ORBIS_OK;
 }
 
 s32 PS4_SYSV_ABI sceVideoOutIsFlipPending(s32 handle) {
     LOG_TRACE(Lib_VideoOut, "called");
     auto* port = driver->GetPort(handle);
+    if (port == nullptr) {
+        return ORBIS_VIDEO_OUT_ERROR_INVALID_HANDLE;
+    }
     std::unique_lock lock{port->port_mutex};
     s32 pending = port->flip_status.flip_pending_num;
     return pending;
@@ -298,7 +308,10 @@ s32 PS4_SYSV_ABI sceVideoOutGetResolutionStatus(s32 handle, SceVideoOutResolutio
 s32 PS4_SYSV_ABI sceVideoOutOpen(Libraries::UserService::OrbisUserServiceUserId userId, s32 busType,
                                  s32 index, const void* param) {
     LOG_INFO(Lib_VideoOut, "called");
-    ASSERT(busType == SCE_VIDEO_OUT_BUS_TYPE_MAIN);
+    if (busType != SCE_VIDEO_OUT_BUS_TYPE_MAIN) {
+        LOG_ERROR(Lib_VideoOut, "Unsupported bus type {}", busType);
+        return ORBIS_VIDEO_OUT_ERROR_INVALID_VALUE;
+    }
 
     if (index != 0) {
         LOG_ERROR(Lib_VideoOut, "Index != 0");
@@ -383,17 +396,27 @@ s32 PS4_SYSV_ABI sceVideoOutWaitVblank(s32 handle) {
     return ORBIS_OK;
 }
 
-s32 PS4_SYSV_ABI sceVideoOutColorSettingsSetGamma(SceVideoOutColorSettings* settings, float gamma) {
+s32 PS4_SYSV_ABI sceVideoOutColorSettingsSetGamma(SceVideoOutColorSettings* settings, float gamma,
+                                                  u32 sizeOfSettings) {
+    if (sizeOfSettings != sizeof(SceVideoOutColorSettings)) {
+        return ORBIS_VIDEO_OUT_ERROR_INVALID_VALUE;
+    }
     if (gamma < 0.1f || gamma > 2.0f) {
         return ORBIS_VIDEO_OUT_ERROR_INVALID_VALUE;
     }
-    settings->gamma = gamma;
+    settings->gamma[0] = gamma;
+    settings->gamma[1] = gamma;
+    settings->gamma[2] = gamma;
     return ORBIS_OK;
 }
 
-s32 PS4_SYSV_ABI sceVideoOutAdjustColor(s32 handle, const SceVideoOutColorSettings* settings) {
+s32 PS4_SYSV_ABI sceVideoOutAdjustColor(s32 handle, const SceVideoOutColorSettings* settings,
+                                        u32 sizeOfSettings) {
     if (settings == nullptr) {
         return ORBIS_VIDEO_OUT_ERROR_INVALID_ADDRESS;
+    }
+    if (sizeOfSettings != sizeof(SceVideoOutColorSettings)) {
+        return ORBIS_VIDEO_OUT_ERROR_INVALID_VALUE;
     }
 
     auto* port = driver->GetPort(handle);
@@ -401,7 +424,7 @@ s32 PS4_SYSV_ABI sceVideoOutAdjustColor(s32 handle, const SceVideoOutColorSettin
         return ORBIS_VIDEO_OUT_ERROR_INVALID_HANDLE;
     }
 
-    presenter->GetPPSettingsRef().gamma = settings->gamma;
+    presenter->GetPPSettingsRef().gamma = settings->gamma[0];
     return ORBIS_OK;
 }
 

@@ -3,6 +3,7 @@
 
 #include "common/logging/log.h"
 #include "core/libraries/error_codes.h"
+#include "core/libraries/kernel/time.h"
 #include "core/libraries/keyboard/keyboard.h"
 #include "core/libraries/libs.h"
 
@@ -82,19 +83,20 @@ s32 PS4_SYSV_ABI sceKeyboardReadState(s32 handle, OrbisKeyboardData* data) {
     if (handle != 1) {
         return ORBIS_KEYBOARD_ERROR_INVALID_HANDLE;
     }
+    *data = {};
     if (!EmulatorSettings.IsKeyboardUsedAsKeyboard()) {
-        data->nkeys = 0;
         return ORBIS_OK;
     }
-    static bool prev_state[SDL_SCANCODE_COUNT]{};
     s32 numkeys;
     auto buf = SDL_GetKeyboardState(&numkeys);
     int j = 0;
-    for (int i = 0; i < SDL_SCANCODE_COUNT; i++) {
+    for (int i = 0; i < SDL_SCANCODE_COUNT && j < 16; i++) {
         if (buf[i]) {
             data->keycodes[j++] = i;
         }
     }
+    data->timestamp = Libraries::Kernel::sceKernelGetProcessTime();
+    data->unk1 = 1;
     data->nkeys = j;
     return ORBIS_OK;
 }

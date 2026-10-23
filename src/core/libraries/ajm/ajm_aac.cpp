@@ -34,6 +34,19 @@ size_t AjmAacDecoder::WriteOutputSamples<float>(SparseOutputBuffer& out, std::sp
     return out.Write(std::span(m_resample_buffer));
 }
 
+template <>
+size_t AjmAacDecoder::WriteOutputSamples<s32>(SparseOutputBuffer& out, std::span<const s16> pcm) {
+    if (pcm.empty()) {
+        return 0;
+    }
+
+    m_resample_buffer_s32.clear();
+    std::transform(pcm.begin(), pcm.end(), std::back_inserter(m_resample_buffer_s32),
+                   [](auto sample) { return s32(sample) << 16; });
+
+    return out.Write(std::span(m_resample_buffer_s32));
+}
+
 AjmAacDecoder::AjmAacDecoder(AjmFormatEncoding format, AjmAacCodecFlags flags, u32 channels)
     : m_format(format), m_flags(flags), m_channels(channels), m_pcm_buffer(1024 * 8),
       m_skip_frames(True(flags & AjmAacCodecFlags::EnableNondelayOutput) ? 0 : 2) {
@@ -199,7 +212,7 @@ DecoderResult AjmAacDecoder::ProcessData(std::span<u8>& input, SparseOutputBuffe
         pcm_written = output.Write(pcm);
         break;
     case AjmFormatEncoding::S32:
-        UNREACHABLE_MSG("NOT IMPLEMENTED");
+        pcm_written = WriteOutputSamples<s32>(output, pcm);
         break;
     case AjmFormatEncoding::Float:
         pcm_written = WriteOutputSamples<float>(output, pcm);

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2024-2026 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <cstring>
+
 #include "common/logging/log.h"
 #include "core/libraries/error_codes.h"
 #include "core/libraries/libs.h"
@@ -12,11 +14,11 @@ namespace Libraries::WebBrowserDialog {
 static auto g_status = Libraries::CommonDialog::Status::NONE;
 
 Libraries::CommonDialog::Error PS4_SYSV_ABI sceWebBrowserDialogClose() {
-    LOG_ERROR(Lib_WebBrowserDialog, "(STUBBED) called");
+    LOG_TRACE(Lib_WebBrowserDialog, "called");
     if (g_status != Libraries::CommonDialog::Status::RUNNING) {
         return Libraries::CommonDialog::Error::NOT_RUNNING;
     }
-    LOG_INFO(Lib_NpProfileDialog, "TODO: close npprofile ui dialog"); // TODO close Ui dialog
+    g_status = Libraries::CommonDialog::Status::FINISHED;
     return Libraries::CommonDialog::Error::OK;
 }
 
@@ -25,8 +27,13 @@ s32 PS4_SYSV_ABI sceWebBrowserDialogGetEvent() {
     return ORBIS_OK;
 }
 
-s32 PS4_SYSV_ABI sceWebBrowserDialogGetResult() {
-    LOG_ERROR(Lib_WebBrowserDialog, "(STUBBED) called");
+s32 PS4_SYSV_ABI sceWebBrowserDialogGetResult(OrbisWebBrowserDialogResult* result) {
+    LOG_TRACE(Lib_WebBrowserDialog, "called");
+    if (result == nullptr) {
+        return ORBIS_OK;
+    }
+    std::memset(result, 0, sizeof(OrbisWebBrowserDialogResult));
+    result->result = static_cast<s32>(Libraries::CommonDialog::Result::OK);
     return ORBIS_OK;
 }
 

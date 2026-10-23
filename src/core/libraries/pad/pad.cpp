@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <optional>
+#include <unordered_set>
 
 namespace Libraries::Pad {
 
@@ -42,6 +43,7 @@ static bool g_initialized = false;
 static u64 pad_handle_counter = 1;
 static std::unordered_map<HandleKey, s32, HandleKeyHash> pad_handle_map{};
 static std::unordered_map<s32, GameController*> handle_to_controller_map{};
+static std::unordered_set<s32> motion_sensor_disabled_handles{};
 
 int PS4_SYSV_ABI scePadClose(s32 handle) {
     LOG_WARNING(Lib_Pad, "called, handle: {}", handle);
@@ -78,7 +80,15 @@ int PS4_SYSV_ABI scePadDeviceClassGetExtendedInformation(
 
 int PS4_SYSV_ABI scePadDeviceClassParseData(s32 handle, const OrbisPadData* pData,
                                             OrbisPadDeviceClassData* pDeviceClassData) {
+    auto it = handle_to_controller_map.find(handle);
+    if (it == handle_to_controller_map.end()) {
+        return ORBIS_PAD_ERROR_INVALID_HANDLE;
+    }
+    if (pDeviceClassData == nullptr) {
+        return ORBIS_PAD_ERROR_INVALID_ARG;
+    }
     LOG_ERROR(Lib_Pad, "(STUBBED) called");
+    std::memset(pDeviceClassData, 0, sizeof(OrbisPadDeviceClassData));
     return ORBIS_OK;
 }
 
@@ -441,7 +451,15 @@ int PS4_SYSV_ABI scePadRead(s32 handle, OrbisPadData* pData, s32 num) {
     auto& controller = *it->second;
     std::array<Input::State, ORBIS_PAD_MAX_DATA_NUM> states;
     const int ret_num = controller.ReadStates(states.data(), num);
-    return ProcessStates(pData, states.data(), ret_num);
+    const int result = ProcessStates(pData, states.data(), ret_num);
+    if (motion_sensor_disabled_handles.contains(handle)) {
+        for (int i = 0; i < ret_num; i++) {
+            pData[i].acceleration = {};
+            pData[i].angularVelocity = {};
+            pData[i].orientation = {0.0f, 0.0f, 0.0f, 1.0f};
+        }
+    }
+    return result;
 }
 
 int PS4_SYSV_ABI scePadReadBlasterForTracker() {
@@ -614,10 +632,15 @@ int PS4_SYSV_ABI scePadSetLoginUserNumber() {
 }
 
 int PS4_SYSV_ABI scePadSetMotionSensorState(s32 handle, bool bEnable) {
-    LOG_ERROR(Lib_Pad, "(STUBBED) called");
+    if (handle_to_controller_map.find(handle) == handle_to_controller_map.end()) {
+        return ORBIS_PAD_ERROR_INVALID_HANDLE;
+    }
+    if (bEnable) {
+        motion_sensor_disabled_handles.erase(handle);
+    } else {
+        motion_sensor_disabled_handles.insert(handle);
+    }
     return ORBIS_OK;
-    // it's already handled by the SDL backend and will be on no matter what
-    // (assuming the controller supports it)
 }
 
 int PS4_SYSV_ABI scePadSetProcessFocus() {

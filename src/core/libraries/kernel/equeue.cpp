@@ -61,8 +61,8 @@ bool EqueueInternal::AddEvent(EqueueEvent& event) {
         // Calculate timer interval
         event.time_added = std::chrono::steady_clock::now();
         if (event.event.filter == OrbisKernelEvent::Filter::Timer) {
-            // Set timer interval, this is stored in milliseconds for timers.
-            event.timer_interval = std::chrono::milliseconds(event.event.data);
+            // Set timer interval, this is stored in microseconds for timers.
+            event.timer_interval = std::chrono::microseconds(event.event.data);
         } else if (event.event.filter == OrbisKernelEvent::Filter::HrTimer) {
             // Retrieve inputted time, this is stored in the bintime format.
             OrbisKernelBintime* time = reinterpret_cast<OrbisKernelBintime*>(event.event.data);
@@ -687,7 +687,7 @@ int PS4_SYSV_ABI sceKernelAddTimerEvent(OrbisKernelEqueue eq, int id, OrbisKerne
     event.event.filter = OrbisKernelEvent::Filter::Timer;
     event.event.flags = OrbisKernelEvent::Flags::Add;
     event.event.fflags = 0;
-    event.event.data = usec / 1000;
+    event.event.data = usec;
     event.event.udata = udata;
 
     auto& equeue = kqueues[eq];
@@ -786,7 +786,7 @@ u32 PS4_SYSV_ABI sceKernelGetEventFflags(const OrbisKernelEvent* ev) {
 
 int PS4_SYSV_ABI sceKernelGetEventError(const OrbisKernelEvent* ev) {
     ASSERT(ev);
-    return ev->fflags != 0 ? static_cast<int>(0x80020000 | ev->fflags) : 0;
+    return (ev->flags & OrbisKernelEvent::Flags::Error) != 0 ? static_cast<int>(ev->data) : 0;
 }
 
 int PS4_SYSV_ABI sceKernelAddReadEvent(OrbisKernelEqueue eq, int fd, size_t size, void* udata) {

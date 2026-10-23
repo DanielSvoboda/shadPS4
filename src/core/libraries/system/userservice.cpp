@@ -46,13 +46,24 @@ int PS4_SYSV_ABI sceUserServiceGetAccessibilityKeyremapEnable() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceUserServiceGetAccessibilityPressAndHoldDelay() {
-    LOG_ERROR(Lib_UserService, "(STUBBED) called");
+s32 PS4_SYSV_ABI sceUserServiceGetAccessibilityPressAndHoldDelay(s32 user_id,
+                                                                 s32* press_and_hold_delay) {
+    LOG_DEBUG(Lib_UserService, "called user_id = {}", user_id);
+    if (press_and_hold_delay == nullptr) {
+        LOG_ERROR(Lib_UserService, "press_and_hold_delay is null");
+        return ORBIS_USER_SERVICE_ERROR_INVALID_ARGUMENT;
+    }
+    *press_and_hold_delay = 0;
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceUserServiceGetAccessibilityVibration() {
-    LOG_ERROR(Lib_UserService, "(STUBBED) called");
+s32 PS4_SYSV_ABI sceUserServiceGetAccessibilityVibration(s32 user_id, s32* vibration) {
+    LOG_DEBUG(Lib_UserService, "called user_id = {}", user_id);
+    if (vibration == nullptr) {
+        LOG_ERROR(Lib_UserService, "vibration is null");
+        return ORBIS_USER_SERVICE_ERROR_INVALID_ARGUMENT;
+    }
+    *vibration = 1;
     return ORBIS_OK;
 }
 
@@ -61,8 +72,13 @@ int PS4_SYSV_ABI sceUserServiceGetAccessibilityZoom() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceUserServiceGetAccessibilityZoomEnabled() {
-    LOG_ERROR(Lib_UserService, "(STUBBED) called");
+s32 PS4_SYSV_ABI sceUserServiceGetAccessibilityZoomEnabled(s32 user_id, s32* zoom) {
+    LOG_DEBUG(Lib_UserService, "called user_id = {}", user_id);
+    if (zoom == nullptr) {
+        LOG_ERROR(Lib_UserService, "zoom is null");
+        return ORBIS_USER_SERVICE_ERROR_INVALID_ARGUMENT;
+    }
+    *zoom = 0;
     return ORBIS_OK;
 }
 
@@ -1076,7 +1092,12 @@ s32 PS4_SYSV_ABI sceUserServiceGetUserColor(int user_id, OrbisUserServiceUserCol
         LOG_ERROR(Lib_UserService, "color is null");
         return ORBIS_USER_SERVICE_ERROR_INVALID_ARGUMENT;
     }
-    *color = (OrbisUserServiceUserColor)UserManagement.GetUserByID(user_id)->user_color;
+    const auto* user = UserManagement.GetUserByID(user_id);
+    if (user == nullptr) {
+        LOG_ERROR(Lib_UserService, "user_id = {} not found", user_id);
+        return ORBIS_USER_SERVICE_ERROR_INVALID_ARGUMENT;
+    }
+    *color = (OrbisUserServiceUserColor)user->user_color;
     return ORBIS_OK;
 }
 

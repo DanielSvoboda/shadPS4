@@ -214,7 +214,7 @@ s32 PS4_SYSV_ABI posix_clock_gettime(u32 clock_id, OrbisKernelTimespec* ts) {
             SetPosixErrno(EFAULT);
             return -1;
         }
-        const u64 ns = FileTimeTo100Ns(kt);
+        const u64 ns = FileTimeTo100Ns(ut) + FileTimeTo100Ns(kt);
         ts->tv_sec = ns / 10'000'000;
         ts->tv_nsec = (ns % 10'000'000) * 100;
         return 0;
@@ -273,8 +273,10 @@ s32 PS4_SYSV_ABI posix_clock_gettime(u32 clock_id, OrbisKernelTimespec* ts) {
             SetPosixErrno(EFAULT);
             return -1;
         }
-        ts->tv_sec = ru.ru_stime.tv_sec;
-        ts->tv_nsec = ru.ru_stime.tv_usec * 1000;
+        const auto sec = ru.ru_utime.tv_sec + ru.ru_stime.tv_sec;
+        const auto usec = ru.ru_utime.tv_usec + ru.ru_stime.tv_usec;
+        ts->tv_sec = sec + usec / 1'000'000;
+        ts->tv_nsec = (usec % 1'000'000) * 1000;
         return 0;
     }
     default:
@@ -347,8 +349,19 @@ s32 PS4_SYSV_ABI posix_clock_getres(u32 clock_id, OrbisKernelTimespec* res) {
             std::max(static_cast<s32>((1000000000 + (pf.QuadPart >> 1)) / pf.QuadPart), 1);
         return 0;
     }
+    case ORBIS_CLOCK_VIRTUAL:
+    case ORBIS_CLOCK_PROF:
+    case ORBIS_CLOCK_THREAD_CPUTIME_ID:
+        res->tv_sec = 0;
+        res->tv_nsec = 100;
+        return 0;
+    case ORBIS_CLOCK_PROCTIME:
+        res->tv_sec = 0;
+        res->tv_nsec = 1000;
+        return 0;
     default:
-        UNREACHABLE();
+        SetPosixErrno(EINVAL);
+        return -1;
     }
 #else
     clockid_t pclock_id;
@@ -379,8 +392,18 @@ s32 PS4_SYSV_ABI posix_clock_getres(u32 clock_id, OrbisKernelTimespec* res) {
         pclock_id = CLOCK_MONOTONIC;
 #endif
         break;
+    case ORBIS_CLOCK_THREAD_CPUTIME_ID:
+        pclock_id = CLOCK_THREAD_CPUTIME_ID;
+        break;
+    case ORBIS_CLOCK_VIRTUAL:
+    case ORBIS_CLOCK_PROF:
+    case ORBIS_CLOCK_PROCTIME:
+        res->tv_sec = 0;
+        res->tv_nsec = 1000;
+        return 0;
     default:
-        UNREACHABLE();
+        SetPosixErrno(EINVAL);
+        return -1;
     }
 
     timespec t{};

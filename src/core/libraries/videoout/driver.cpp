@@ -112,8 +112,8 @@ int VideoOutDriver::RegisterBuffers(VideoOutPort* port, s32 startIndex, void* co
         return ORBIS_VIDEO_OUT_ERROR_NO_EMPTY_SLOT;
     }
 
-    if (startIndex + bufferNum > MaxDisplayBuffers || startIndex > MaxDisplayBuffers ||
-        bufferNum > MaxDisplayBuffers) {
+    if (startIndex < 0 || startIndex + bufferNum > MaxDisplayBuffers ||
+        startIndex > MaxDisplayBuffers || bufferNum > MaxDisplayBuffers) {
         LOG_ERROR(Lib_VideoOut,
                   "Attempted to register too many buffers startIndex = {}, bufferNum = {}",
                   startIndex, bufferNum);
@@ -144,6 +144,19 @@ int VideoOutDriver::RegisterBuffers(VideoOutPort* port, s32 startIndex, void* co
         LOG_ERROR(Lib_VideoOut, "Invalid tilingMode = {}",
                   static_cast<u32>(attribute->tiling_mode));
         return ORBIS_VIDEO_OUT_ERROR_INVALID_TILING_MODE;
+    }
+    switch (attribute->pixel_format) {
+    case PixelFormat::A8R8G8B8Srgb:
+    case PixelFormat::A8B8G8R8Srgb:
+    case PixelFormat::A2R10G10B10:
+    case PixelFormat::A2R10G10B10Srgb:
+    case PixelFormat::A2R10G10B10Bt2020Pq:
+    case PixelFormat::A16R16G16B16Float:
+        break;
+    default:
+        LOG_ERROR(Lib_VideoOut, "Unsupported pixel format {:#x}",
+                  static_cast<u32>(attribute->pixel_format));
+        return ORBIS_VIDEO_OUT_ERROR_INVALID_PIXEL_FORMAT;
     }
 
     LOG_INFO(Lib_VideoOut,
@@ -177,7 +190,8 @@ int VideoOutDriver::RegisterBuffers(VideoOutPort* port, s32 startIndex, void* co
 }
 
 int VideoOutDriver::UnregisterBuffers(VideoOutPort* port, s32 attributeIndex) {
-    if (attributeIndex >= MaxDisplayBufferGroups || !port->groups[attributeIndex].is_occupied) {
+    if (attributeIndex < 0 || attributeIndex >= MaxDisplayBufferGroups ||
+        !port->groups[attributeIndex].is_occupied) {
         LOG_ERROR(Lib_VideoOut, "Invalid attribute index {}", attributeIndex);
         return ORBIS_VIDEO_OUT_ERROR_INVALID_VALUE;
     }
@@ -197,7 +211,8 @@ int VideoOutDriver::UnregisterBuffers(VideoOutPort* port, s32 attributeIndex) {
 
 int VideoOutDriver::ChangeBufferAttribute(VideoOutPort* port, s32 attributeIndex,
                                           const BufferAttribute* attribute) {
-    if (attributeIndex >= MaxDisplayBufferGroups || !port->groups[attributeIndex].is_occupied) {
+    if (attributeIndex < 0 || attributeIndex >= MaxDisplayBufferGroups ||
+        !port->groups[attributeIndex].is_occupied) {
         LOG_ERROR(Lib_VideoOut, "Invalid attribute index {}", attributeIndex);
         return ORBIS_VIDEO_OUT_ERROR_INVALID_VALUE;
     }

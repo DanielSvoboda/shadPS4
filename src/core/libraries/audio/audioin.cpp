@@ -26,7 +26,7 @@ static int GetPortId(s32 handle) {
 
     if (port_id >= ORBIS_AUDIO_IN_NUM_PORTS) {
         LOG_ERROR(Lib_AudioIn, "Invalid port");
-        return ORBIS_AUDIO_IN_ERROR_PORT_FULL;
+        return ORBIS_AUDIO_IN_ERROR_INVALID_HANDLE;
     }
 
     if ((handle & 0x7f000000) != 0x30000000) {
@@ -43,7 +43,7 @@ static s32 GetPortType(s32 handle) {
 
 static int AllocatePort(OrbisAudioInType type) {
     // TODO implement port type ranges if needed
-    for (int i = 0; i <= ORBIS_AUDIO_IN_NUM_PORTS; i++) {
+    for (int i = 0; i < ORBIS_AUDIO_IN_NUM_PORTS; i++) {
         std::shared_lock read_lock{port_table_mutex};
         if (!port_table[i]) {
             return i;

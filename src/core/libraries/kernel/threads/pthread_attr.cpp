@@ -31,7 +31,7 @@ PthreadAttr PthreadAttrDefault = {
     .flags = PthreadAttrFlags::ScopeSystem,
     .stackaddr_attr = nullptr,
     .stacksize_attr = ThrStackDefault,
-    .guardsize_attr = 0,
+    .guardsize_attr = ThrGuardDefault,
     .cpusetsize = 0,
     .cpuset = nullptr,
 };
@@ -136,8 +136,7 @@ int PS4_SYSV_ABI posix_pthread_attr_setcreatesuspend_np(PthreadAttrT* attr) {
     if (attr == nullptr || *attr == nullptr) {
         return POSIX_EINVAL;
     }
-    (*attr)->suspend = 1;
-    return 0;
+    return POSIX_ENOTSUP;
 }
 
 int PS4_SYSV_ABI posix_pthread_attr_setschedpolicy(PthreadAttrT* attr, SchedPolicy policy) {
@@ -155,14 +154,12 @@ int PS4_SYSV_ABI posix_pthread_attr_setscope(PthreadAttrT* attr, PthreadAttrFlag
     if (attr == nullptr || *attr == nullptr) {
         return POSIX_EINVAL;
     }
-    if (contentionscope != PthreadAttrFlags::ScopeProcess ||
-        contentionscope != PthreadAttrFlags::ScopeSystem) {
-        return POSIX_EINVAL;
-    }
     if (contentionscope == PthreadAttrFlags::ScopeSystem) {
         (*attr)->flags |= contentionscope;
+    } else if (contentionscope == PthreadAttrFlags::ScopeProcess) {
+        return POSIX_ENOTSUP;
     } else {
-        (*attr)->flags &= ~PthreadAttrFlags::ScopeSystem;
+        return POSIX_EINVAL;
     }
     return 0;
 }

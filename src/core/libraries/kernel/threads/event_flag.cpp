@@ -145,6 +145,7 @@ public:
         if (infinite) {
             waiter.cv.wait(lock, wake);
         } else {
+            const auto start = std::chrono::steady_clock::now();
             if (!waiter.cv.wait_for(lock, std::chrono::microseconds(timeout), wake)) {
 
                 RemoveWaiter(waiter);
@@ -155,6 +156,11 @@ public:
                 *ptr_micros = 0;
                 return ORBIS_KERNEL_ERROR_ETIMEDOUT;
             }
+
+            const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::steady_clock::now() - start)
+                                     .count();
+            *ptr_micros = timeout > elapsed ? static_cast<u32>(timeout - elapsed) : 0;
         }
 
         RemoveWaiter(waiter);
@@ -206,7 +212,7 @@ public:
 
     void Clear(u64 bits) {
         std::scoped_lock lock(m_mutex);
-        m_bits &= bits;
+        m_bits &= ~bits;
     }
 
     void Cancel(u64 pattern, int* num_waiters) {
@@ -254,7 +260,11 @@ int PS4_SYSV_ABI sceKernelCreateEventFlag(OrbisKernelEventFlag* ef, const char* 
     if (ef == nullptr || pName == nullptr) {
         return ORBIS_KERNEL_ERROR_EINVAL;
     }
-    if (pOptParam || attr > (ORBIS_KERNEL_EVF_ATTR_MULTI | ORBIS_KERNEL_EVF_ATTR_TH_PRIO)) {
+    if (pOptParam && pOptParam->size > sizeof(OrbisKernelEventFlagOptParam)) {
+        return ORBIS_KERNEL_ERROR_EINVAL;
+    }
+    if (attr & ~(ORBIS_KERNEL_EVF_ATTR_TH_FIFO | ORBIS_KERNEL_EVF_ATTR_TH_PRIO |
+                 ORBIS_KERNEL_EVF_ATTR_SINGLE | ORBIS_KERNEL_EVF_ATTR_MULTI)) {
         return ORBIS_KERNEL_ERROR_EINVAL;
     }
 
@@ -274,7 +284,7 @@ int PS4_SYSV_ABI sceKernelCreateEventFlag(OrbisKernelEventFlag* ef, const char* 
     case 0x00:
         break;
     default:
-        UNREACHABLE();
+        return ORBIS_KERNEL_ERROR_EINVAL;
     }
 
     switch (attr & 0xf0) {
@@ -287,7 +297,7 @@ int PS4_SYSV_ABI sceKernelCreateEventFlag(OrbisKernelEventFlag* ef, const char* 
     case 0x00:
         break;
     default:
-        UNREACHABLE();
+        return ORBIS_KERNEL_ERROR_EINVAL;
     }
 
     *ef = new EventFlagInternal(std::string(pName), thread_mode, queue_mode, initPattern);
@@ -363,7 +373,7 @@ int PS4_SYSV_ABI sceKernelPollEventFlag(OrbisKernelEventFlag ef, u64 bitPattern,
         wait = EventFlagInternal::WaitMode::Or;
         break;
     default:
-        UNREACHABLE();
+        return ORBIS_KERNEL_ERROR_EINVAL;
     }
 
     switch (waitMode & 0xf0) {
@@ -377,7 +387,7 @@ int PS4_SYSV_ABI sceKernelPollEventFlag(OrbisKernelEventFlag ef, u64 bitPattern,
         clear = EventFlagInternal::ClearMode::Bits;
         break;
     default:
-        UNREACHABLE();
+        return ORBIS_KERNEL_ERROR_EINVAL;
     }
 
     auto result = ef->Poll(bitPattern, wait, clear, pResultPat);
@@ -409,7 +419,7 @@ int PS4_SYSV_ABI sceKernelWaitEventFlag(OrbisKernelEventFlag ef, u64 bitPattern,
         wait = EventFlagInternal::WaitMode::Or;
         break;
     default:
-        UNREACHABLE();
+        return ORBIS_KERNEL_ERROR_EINVAL;
     }
 
     switch (waitMode & 0xf0) {
@@ -423,7 +433,7 @@ int PS4_SYSV_ABI sceKernelWaitEventFlag(OrbisKernelEventFlag ef, u64 bitPattern,
         clear = EventFlagInternal::ClearMode::Bits;
         break;
     default:
-        UNREACHABLE();
+        return ORBIS_KERNEL_ERROR_EINVAL;
     }
 
     const int result = ef->Wait(bitPattern, wait, clear, pResultPat, pTimeout);

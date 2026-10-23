@@ -53,6 +53,7 @@ enum class SystemMessageType : u32 {
     TRC_PSN_UGC_RESTRICTION = 2,
     CAMERA_NOT_CONNECTED = 4,
     WARNING_PROFILE_PICTURE_AND_NAME_NOT_SHARED = 5,
+    PSN_COMMUNICATION_RESTRICTION = 6,
 };
 
 enum class OrbisMsgDialogProgressBarTarget : u32 {

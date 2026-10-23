@@ -12,9 +12,17 @@ class SymbolsResolver;
 
 namespace Libraries::WebBrowserDialog {
 
+struct OrbisWebBrowserDialogResult {
+    s32 result;
+    s32 pad;
+    void* callback_result_param;
+    char reserved[240];
+};
+static_assert(sizeof(OrbisWebBrowserDialogResult) == 256);
+
 Libraries::CommonDialog::Error PS4_SYSV_ABI sceWebBrowserDialogClose();
 s32 PS4_SYSV_ABI sceWebBrowserDialogGetEvent();
-s32 PS4_SYSV_ABI sceWebBrowserDialogGetResult();
+s32 PS4_SYSV_ABI sceWebBrowserDialogGetResult(OrbisWebBrowserDialogResult* result);
 Libraries::CommonDialog::Status PS4_SYSV_ABI sceWebBrowserDialogGetStatus();
 Libraries::CommonDialog::Error PS4_SYSV_ABI sceWebBrowserDialogInitialize();
 s32 PS4_SYSV_ABI sceWebBrowserDialogNavigate();

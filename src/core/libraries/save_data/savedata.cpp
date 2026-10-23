@@ -24,6 +24,7 @@
 #include "core/libraries/save_data/savedata_error.h"
 #include "core/libraries/system/msgdialog.h"
 #include "core/libraries/system/msgdialog_ui.h"
+#include "core/user_settings.h"
 #include "save_backup.h"
 #include "save_instance.h"
 #include "save_memory.h"
@@ -170,8 +171,9 @@ struct OrbisSaveDataMemorySet2 {
     const OrbisSaveDataIcon* icon;
     u32 dataNum;
     u32 slotId;
-    std::array<u8, 32> _reserved;
+    std::array<u8, 24> _reserved;
 };
+static_assert(sizeof(OrbisSaveDataMemorySet2) == 64);
 
 struct OrbisSaveDataMemorySetup2 {
     OrbisSaveDataSaveDataMemoryOption option;
@@ -406,8 +408,7 @@ static Error saveDataMount(const OrbisSaveDataMount2* mount_info,
     for (size_t i = 0; i < g_mount_slots.size(); i++) {
         const auto& instance = g_mount_slots[i];
         if (instance.has_value()) {
-            const auto& slot_name = instance->GetDirName();
-            if (slot_name == dir_name) {
+            if (instance->GetDirName() == dir_name && instance->GetUserId() == mount_info->userId) {
                 return Error::BUSY;
             }
         } else {
@@ -730,7 +731,7 @@ Error PS4_SYSV_ABI sceSaveDataDelete(const OrbisSaveDataDelete* del) {
         LOG_INFO(Lib_SaveData, "called without initialize");
         return setNotInitializedError();
     }
-    if (del == nullptr) {
+    if (del == nullptr || del->dirName == nullptr) {
         LOG_INFO(Lib_SaveData, "called with invalid parameter");
         return Error::PARAMETER;
     }
@@ -740,7 +741,8 @@ Error PS4_SYSV_ABI sceSaveDataDelete(const OrbisSaveDataDelete* del) {
         return Error::PARAMETER;
     }
     for (const auto& instance : g_mount_slots) {
-        if (instance.has_value() && instance->GetDirName() == dirName) {
+        if (instance.has_value() && instance->GetDirName() == dirName &&
+            instance->GetUserId() == del->userId) {
             return Error::BUSY;
         }
     }
@@ -911,9 +913,15 @@ int PS4_SYSV_ABI sceSaveDataGetAllSize() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceSaveDataGetAppLaunchedUser() {
-    LOG_ERROR(Lib_SaveData, "(STUBBED) called");
-    return ORBIS_OK;
+Error PS4_SYSV_ABI sceSaveDataGetAppLaunchedUser(
+    Libraries::UserService::OrbisUserServiceUserId* user_id) {
+    LOG_DEBUG(Lib_SaveData, "called");
+    if (user_id == nullptr) {
+        LOG_ERROR(Lib_SaveData, "user_id is null");
+        return Error::PARAMETER;
+    }
+    *user_id = UserManagement.GetDefaultUser().user_id;
+    return Error::OK;
 }
 
 int PS4_SYSV_ABI sceSaveDataGetAutoUploadConditions() {
@@ -1219,9 +1227,18 @@ int PS4_SYSV_ABI sceSaveDataIsDeletingUsbDb() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceSaveDataIsMounted() {
-    LOG_ERROR(Lib_SaveData, "(STUBBED) called");
-    return ORBIS_OK;
+int PS4_SYSV_ABI sceSaveDataIsMounted(const OrbisSaveDataMountPoint* mountPoint) {
+    LOG_TRACE(Lib_SaveData, "called");
+    if (mountPoint == nullptr) {
+        return 0;
+    }
+    const std::string_view mount_point_str{mountPoint->data};
+    for (const auto& instance : g_mount_slots) {
+        if (instance.has_value() && instance->GetMountPoint() == mount_point_str) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 Error PS4_SYSV_ABI sceSaveDataLoadIcon(const OrbisSaveDataMountPoint* mountPoint,
@@ -1247,7 +1264,7 @@ Error PS4_SYSV_ABI sceSaveDataLoadIcon(const OrbisSaveDataMountPoint* mountPoint
         return Error::NOT_MOUNTED;
     }
     if (!fs::exists(path)) {
-        return Error::NOT_FOUND;
+        return Error::FILE_NOT_FOUND;
     }
 
     return icon->LoadIcon(path);

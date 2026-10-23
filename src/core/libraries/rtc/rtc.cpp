@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2024-2026 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <algorithm>
 #include <chrono>
 
 #include "common/logging/log.h"
@@ -268,7 +269,7 @@ int PS4_SYSV_ABI sceRtcFormatRFC2822LocalTime(char* pszDateTime, const OrbisRtcT
 int PS4_SYSV_ABI sceRtcFormatRFC3339(char* pszDateTime, const OrbisRtcTick* pTickUtc,
                                      int iTimeZoneMinutes) {
     LOG_TRACE(Lib_Rtc, "called");
-    return sceRtcFormatRFC3339Precise(pszDateTime, pTickUtc, iTimeZoneMinutes);
+    return sceRtcFormatRFC3339Precise(pszDateTime, pTickUtc, iTimeZoneMinutes, 2);
 }
 
 int PS4_SYSV_ABI sceRtcFormatRFC3339LocalTime(char* pszDateTime, const OrbisRtcTick* pTickUtc) {
@@ -282,7 +283,7 @@ int PS4_SYSV_ABI sceRtcFormatRFC3339LocalTime(char* pszDateTime, const OrbisRtcT
 }
 
 int PS4_SYSV_ABI sceRtcFormatRFC3339Precise(char* pszDateTime, const OrbisRtcTick* pTickUtc,
-                                            int iTimeZoneMinutes) {
+                                            int iTimeZoneMinutes, u32 secfrac) {
     LOG_TRACE(Lib_Rtc, "called");
 
     if (pszDateTime == nullptr)
@@ -335,10 +336,15 @@ int PS4_SYSV_ABI sceRtcFormatRFC3339Precise(char* pszDateTime, const OrbisRtcTic
         formattedString += std::to_string(formatTime.second);
     }
 
-    if (formatTime.microsecond != 0) {
-        formattedString += "." + std::to_string(formatTime.microsecond / 1000).substr(0, 2);
-    } else {
-        formattedString += ".00";
+    if (secfrac > 0) {
+        if (secfrac > 6) {
+            secfrac = 6;
+        }
+        std::string usec = std::to_string(formatTime.microsecond);
+        if (usec.size() < 6) {
+            usec.insert(0, 6 - usec.size(), '0');
+        }
+        formattedString += "." + usec.substr(0, secfrac);
     }
 
     if (iTimeZoneMinutes == 0) {
@@ -377,14 +383,14 @@ int PS4_SYSV_ABI sceRtcFormatRFC3339Precise(char* pszDateTime, const OrbisRtcTic
 }
 
 int PS4_SYSV_ABI sceRtcFormatRFC3339PreciseLocalTime(char* pszDateTime,
-                                                     const OrbisRtcTick* pTickUtc) {
+                                                     const OrbisRtcTick* pTickUtc, u32 secfrac) {
     LOG_TRACE(Lib_Rtc, "called");
 
     Kernel::OrbisKernelTimezone timeZone;
     Kernel::sceKernelGettimezone(&timeZone);
 
     return sceRtcFormatRFC3339Precise(pszDateTime, pTickUtc,
-                                      timeZone.tz_minuteswest + timeZone.tz_dsttime);
+                                      timeZone.tz_minuteswest + timeZone.tz_dsttime, secfrac);
 }
 
 int PS4_SYSV_ABI sceRtcGetCurrentAdNetworkTick(OrbisRtcTick* pTick) {
@@ -409,7 +415,7 @@ int PS4_SYSV_ABI sceRtcGetCurrentClock(OrbisRtcDateTime* pTime, int timeZone) {
     LOG_TRACE(Lib_Rtc, "called");
 
     if (pTime == nullptr)
-        return ORBIS_RTC_ERROR_DATETIME_UNINITIALIZED;
+        return ORBIS_RTC_ERROR_INVALID_POINTER;
 
     Kernel::OrbisKernelTimespec clocktime;
     int returnValue = Kernel::sceKernelClockGettime(Kernel::ORBIS_CLOCK_REALTIME, &clocktime);
@@ -429,7 +435,7 @@ int PS4_SYSV_ABI sceRtcGetCurrentClockLocalTime(OrbisRtcDateTime* pTime) {
     LOG_TRACE(Lib_Rtc, "called");
 
     if (pTime == nullptr)
-        return ORBIS_RTC_ERROR_DATETIME_UNINITIALIZED;
+        return ORBIS_RTC_ERROR_INVALID_POINTER;
 
     Kernel::OrbisKernelTimezone timeZone;
     int returnValue = Kernel::sceKernelGettimezone(&timeZone);
@@ -509,7 +515,7 @@ int PS4_SYSV_ABI sceRtcGetCurrentTick(OrbisRtcTick* pTick) {
     LOG_TRACE(Lib_Rtc, "called");
 
     if (pTick == nullptr)
-        return ORBIS_RTC_ERROR_DATETIME_UNINITIALIZED;
+        return ORBIS_RTC_ERROR_INVALID_POINTER;
 
     Kernel::OrbisKernelTimespec clocktime;
     int returnValue = Kernel::sceKernelClockGettime(Kernel::ORBIS_CLOCK_REALTIME, &clocktime);
@@ -586,7 +592,7 @@ int PS4_SYSV_ABI sceRtcGetDosTime(OrbisRtcDateTime* pTime, u32* dosTime) {
         return isValid;
     }
 
-    *dosTime |= (pTime->second / 2) & 0x1F;
+    *dosTime = (pTime->second / 2) & 0x1F;
     *dosTime |= (pTime->minute & 0x3F) << 5;
     *dosTime |= (pTime->hour & 0x1F) << 11;
     *dosTime |= (pTime->day & 0x1F) << 16;
@@ -606,25 +612,26 @@ int PS4_SYSV_ABI sceRtcGetTick(OrbisRtcDateTime* pTime, OrbisRtcTick* pTick) {
     if (isTimeValid != 0)
         return isTimeValid;
 
-    if (pTime->month > 2) {
-        pTime->month -= 3;
+    OrbisRtcDateTime time = *pTime;
+    if (time.month > 2) {
+        time.month -= 3;
     } else {
-        pTime->month += 9;
-        pTime->year -= 1;
+        time.month += 9;
+        time.year -= 1;
     }
 
-    int c = pTime->year / 100;
-    int ya = pTime->year - 100 * c;
+    int c = time.year / 100;
+    int ya = time.year - 100 * c;
 
     u64 days;
     u64 msec;
 
-    days = ((146097 * c) >> 2) + ((1461 * ya) >> 2) + (153 * pTime->month + 2) / 5 + pTime->day;
+    days = ((146097 * c) >> 2) + ((1461 * ya) >> 2) + (153 * time.month + 2) / 5 + time.day;
     days -= 307;
     days *= 86400000000;
 
-    msec = pTime->hour * 3600000000 + pTime->minute * 60000000 + pTime->second * 1000000 +
-           pTime->microsecond;
+    msec = time.hour * 3600000000 + time.minute * 60000000 + time.second * 1000000 +
+           time.microsecond;
 
     pTick->tick = days + msec;
 
@@ -807,12 +814,21 @@ int PS4_SYSV_ABI sceRtcParseRFC3339(OrbisRtcTick* pTickUtc, const char* pszDateT
     dateTime.hour = std::stoi(dateTimeString.substr(11, 2));
     dateTime.minute = std::stoi(dateTimeString.substr(14, 2));
     dateTime.second = std::stoi(dateTimeString.substr(17, 2));
-    s32 timezone_pos = 22;
+    s32 timezone_pos = 19;
+    dateTime.microsecond = 0;
     if (dateTimeString[19] == '.') {
-        dateTime.microsecond = std::stoi(dateTimeString.substr(20, 2));
-    } else {
-        timezone_pos = 19;
-        dateTime.microsecond = 0;
+        s32 frac_len = 0;
+        while (dateTimeString[20 + frac_len] >= '0' && dateTimeString[20 + frac_len] <= '9') {
+            frac_len++;
+        }
+        const s32 digits = std::min(frac_len, 6);
+        const s64 frac = std::stoll(dateTimeString.substr(20, digits));
+        s64 multiplier = 1;
+        for (s32 i = digits; i < 6; i++) {
+            multiplier *= 10;
+        }
+        dateTime.microsecond = static_cast<u32>(frac * multiplier);
+        timezone_pos = 20 + frac_len;
     }
 
     sceRtcGetTick(&dateTime, pTickUtc);
@@ -842,11 +858,11 @@ void PS4_SYSV_ABI sceRtcSetConf(void* p1, void* p2, s32 minuteswest, s32 dsttime
 
 int PS4_SYSV_ABI sceRtcSetCurrentAdNetworkTick(OrbisRtcTick* pTick) {
     LOG_INFO(Lib_Rtc, "called");
-    if (UNIX_EPOCH_TICKS >= pTick->tick) {
-        return ORBIS_RTC_ERROR_INVALID_VALUE;
-    }
     s32 ret = 0;
     if (pTick != nullptr) {
+        if (UNIX_EPOCH_TICKS >= pTick->tick) {
+            return ORBIS_RTC_ERROR_INVALID_VALUE;
+        }
         u64 temp = pTick->tick - UNIX_EPOCH_TICKS;
         Kernel::OrbisKernelTimespec ts(temp / 1000000, temp % 1000000);
         ret = Kernel::posix_clock_settime(ORBIS_RTC_CLOCK_ID_AD_NETWORK, &ts);
@@ -861,11 +877,11 @@ int PS4_SYSV_ABI sceRtcSetCurrentAdNetworkTick(OrbisRtcTick* pTick) {
 
 int PS4_SYSV_ABI sceRtcSetCurrentDebugNetworkTick(OrbisRtcTick* pTick) {
     LOG_INFO(Lib_Rtc, "called");
-    if (UNIX_EPOCH_TICKS >= pTick->tick) {
-        return ORBIS_RTC_ERROR_INVALID_VALUE;
-    }
     s32 ret = 0;
     if (pTick != nullptr) {
+        if (UNIX_EPOCH_TICKS >= pTick->tick) {
+            return ORBIS_RTC_ERROR_INVALID_VALUE;
+        }
         u64 temp = pTick->tick - UNIX_EPOCH_TICKS;
         Kernel::OrbisKernelTimespec ts(temp / 1000000, temp % 1000000);
         ret = Kernel::posix_clock_settime(ORBIS_RTC_CLOCK_ID_DEBUG_NETWORK, &ts);
@@ -880,11 +896,11 @@ int PS4_SYSV_ABI sceRtcSetCurrentDebugNetworkTick(OrbisRtcTick* pTick) {
 
 int PS4_SYSV_ABI sceRtcSetCurrentNetworkTick(OrbisRtcTick* pTick) {
     LOG_INFO(Lib_Rtc, "called");
-    if (UNIX_EPOCH_TICKS >= pTick->tick) {
-        return ORBIS_RTC_ERROR_INVALID_VALUE;
-    }
     s32 ret = 0;
     if (pTick != nullptr) {
+        if (UNIX_EPOCH_TICKS >= pTick->tick) {
+            return ORBIS_RTC_ERROR_INVALID_VALUE;
+        }
         u64 temp = pTick->tick - UNIX_EPOCH_TICKS;
         Kernel::OrbisKernelTimespec ts(temp / 1000000, temp % 1000000);
         ret = Kernel::posix_clock_settime(ORBIS_RTC_CLOCK_ID_NETWORK, &ts);
@@ -1082,7 +1098,7 @@ int PS4_SYSV_ABI sceRtcTickAddMonths(OrbisRtcTick* pTick1, OrbisRtcTick* pTick2,
     s64 s;
     s64 tempMonth;
 
-    sceRtcSetTick(&time, pTick1);
+    sceRtcSetTick(&time, pTick2);
 
     if (lAdd >= 0) {
         s = 1;
@@ -1166,7 +1182,7 @@ int PS4_SYSV_ABI sceRtcTickAddYears(OrbisRtcTick* pTick1, OrbisRtcTick* pTick2, 
         return ORBIS_OK;
     }
 
-    sceRtcSetTick(&time, pTick1);
+    sceRtcSetTick(&time, pTick2);
 
     time.year += lAdd;
 

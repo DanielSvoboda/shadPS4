@@ -15,8 +15,11 @@ namespace Libraries::Ajm {
 
 constexpr int ORBIS_AJM_CHANNELMASK_MONO = 0x0004;
 constexpr int ORBIS_AJM_CHANNELMASK_STEREO = 0x0003;
+constexpr int ORBIS_AJM_CHANNELMASK_3CH = 0x0007;
 constexpr int ORBIS_AJM_CHANNELMASK_QUAD = 0x0033;
+constexpr int ORBIS_AJM_CHANNELMASK_5CH = 0x0607;
 constexpr int ORBIS_AJM_CHANNELMASK_5POINT1 = 0x060F;
+constexpr int ORBIS_AJM_CHANNELMASK_6POINT1 = 0x070F;
 constexpr int ORBIS_AJM_CHANNELMASK_7POINT1 = 0x063F;
 
 static std::unordered_map<u32, std::unique_ptr<AjmContext>> contexts{};
@@ -27,14 +30,21 @@ u32 GetChannelMask(u32 num_channels) {
         return ORBIS_AJM_CHANNELMASK_MONO;
     case 2:
         return ORBIS_AJM_CHANNELMASK_STEREO;
+    case 3:
+        return ORBIS_AJM_CHANNELMASK_3CH;
     case 4:
         return ORBIS_AJM_CHANNELMASK_QUAD;
+    case 5:
+        return ORBIS_AJM_CHANNELMASK_5CH;
     case 6:
         return ORBIS_AJM_CHANNELMASK_5POINT1;
+    case 7:
+        return ORBIS_AJM_CHANNELMASK_6POINT1;
     case 8:
         return ORBIS_AJM_CHANNELMASK_7POINT1;
     default:
-        UNREACHABLE_MSG("Unexpected number of channels: {}", num_channels);
+        LOG_WARNING(Lib_Ajm, "Unexpected number of channels: {}", num_channels);
+        return ORBIS_AJM_CHANNELMASK_STEREO;
     }
 }
 

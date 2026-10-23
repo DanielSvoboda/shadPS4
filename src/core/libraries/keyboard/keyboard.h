@@ -28,8 +28,10 @@ struct OrbisKeyboardData {
     u32 nkeys;
     u32 locks; // num lock, caps lock, scroll lock
     u32 mods;  // ctrl, shift, alt, meta
-    u16 keycodes[32];
+    u16 keycodes[16];
+    u8 reserve[32];
 };
+static_assert(sizeof(OrbisKeyboardData) == 96);
 
 struct OrbisKeyboardKey2Char {
     s32 ok;

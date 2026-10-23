@@ -59,5 +59,17 @@ enum OrbisVideoRecordingUserMeta {
     Debug = 0x8000,
 };
 
+constexpr s32 ORBIS_VIDEO_RECORDING_MAX_MEM_SIZE = 2048 * 1024; // 2MiB
+
+s32 PS4_SYSV_ABI sceVideoRecordingSetInfo(OrbisVideoRecordingInfo set_info, const void* info,
+                                           u64 info_len);
+s32 PS4_SYSV_ABI sceVideoRecordingGetStatus();
+s32 PS4_SYSV_ABI sceVideoRecordingQueryMemSize2(const OrbisVideoRecordingParam2* param);
+s32 PS4_SYSV_ABI sceVideoRecordingOpen2(const char* path, const OrbisVideoRecordingParam2* param,
+                                       void* heap, s32 heap_size);
+s32 PS4_SYSV_ABI sceVideoRecordingStart();
+s32 PS4_SYSV_ABI sceVideoRecordingStop();
+s32 PS4_SYSV_ABI sceVideoRecordingClose(s32 discard);
+
 void RegisterLib(Core::Loader::SymbolsResolver* sym);
 } // namespace Libraries::VideoRecording

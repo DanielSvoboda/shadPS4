@@ -116,14 +116,15 @@ struct OrbisNpTusDataStatusA {
 struct OrbisNpTusVariable {
     OrbisNpId ownerId;
     s32 hasData;
-    u8 pad[4];
     Libraries::Rtc::OrbisRtcTick lastChangedDate;
+    u8 pad[4];
     OrbisNpId lastChangedAuthorId;
     s64 variable;
     s64 oldVariable;
     OrbisNpAccountId ownerAccountId;
     OrbisNpAccountId lastChangedAuthorAccountId;
 };
+static_assert(sizeof(OrbisNpTusVariable) == 120);
 
 struct OrbisNpTusVariableA {
     OrbisNpOnlineId ownerId;

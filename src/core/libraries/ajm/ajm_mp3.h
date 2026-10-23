@@ -24,7 +24,7 @@ enum class AjmDecMp3OflType : u32 {
 
 enum AjmMp3CodecFlags : u32 {
     IgnoreOfl = 1 << 0,
-    VlcRewind = 1 << 8,
+    VlcRewind = 1 << 1,
 };
 DECLARE_ENUM_FLAG_OPERATORS(AjmMp3CodecFlags)
 

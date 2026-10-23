@@ -29,7 +29,7 @@ int PS4_SYSV_ABI posix_pthread_key_create(PthreadKeyT* key, PthreadKeyDestructor
 }
 
 int PS4_SYSV_ABI posix_pthread_key_delete(PthreadKeyT key) {
-    if (key >= PthreadKeysMax) {
+    if (key < 0 || key >= PthreadKeysMax) {
         return POSIX_EINVAL;
     }
 
@@ -106,7 +106,7 @@ int PS4_SYSV_ABI posix_pthread_setspecific(PthreadKeyT key, const void* value) {
             return POSIX_ENOMEM;
         }
     }
-    if (key >= PthreadKeysMax) {
+    if (key < 0 || key >= PthreadKeysMax) {
         return POSIX_EINVAL;
     }
     if (!ThreadKeytable[key].allocated) {
@@ -128,7 +128,7 @@ int PS4_SYSV_ABI posix_pthread_setspecific(PthreadKeyT key, const void* value) {
 const void* PS4_SYSV_ABI posix_pthread_getspecific(PthreadKeyT key) {
     Pthread* pthread = g_curthread;
 
-    if (!pthread->specific || key >= PthreadKeysMax) {
+    if (!pthread->specific || key < 0 || key >= PthreadKeysMax) {
         return nullptr;
     }
 

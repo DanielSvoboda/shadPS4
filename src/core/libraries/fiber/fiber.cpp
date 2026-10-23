@@ -172,7 +172,7 @@ s32 PS4_SYSV_ABI sceFiberInitializeImpl(OrbisFiber* fiber, const char* name, Orb
     if (addr_context && !size_context) {
         return ORBIS_FIBER_ERROR_INVALID;
     }
-    if (opt_param && opt_param->magic != kFiberOptSignature) {
+    if (opt_param && opt_param->magic != 0 && opt_param->magic != kFiberOptSignature) {
         return ORBIS_FIBER_ERROR_INVALID;
     }
 
@@ -185,6 +185,7 @@ s32 PS4_SYSV_ABI sceFiberInitializeImpl(OrbisFiber* fiber, const char* name, Orb
     }
 
     strncpy(fiber->name, name, ORBIS_FIBER_MAX_NAME_LENGTH);
+    fiber->name[ORBIS_FIBER_MAX_NAME_LENGTH] = '\0';
 
     fiber->entry = entry;
     fiber->arg_on_initialize = arg_on_initialize;
@@ -454,6 +455,7 @@ s32 PS4_SYSV_ABI sceFiberGetInfo(OrbisFiber* fiber, OrbisFiberInfo* fiber_info) 
     fiber_info->addr_context = fiber->addr_context;
     fiber_info->size_context = fiber->size_context;
     strncpy(fiber_info->name, fiber->name, ORBIS_FIBER_MAX_NAME_LENGTH);
+    fiber_info->name[ORBIS_FIBER_MAX_NAME_LENGTH] = '\0';
 
     fiber_info->size_context_margin = -1;
     if (fiber->flags & FiberFlags::ContextSizeCheck && fiber->addr_context != nullptr) {
@@ -463,10 +465,8 @@ s32 PS4_SYSV_ABI sceFiberGetInfo(OrbisFiber* fiber, OrbisFiberInfo* fiber_info) 
 
         if (*stack_start == kFiberStackSignature) {
             u64* stack_ptr = stack_start + 1;
-            while (stack_ptr < stack_end) {
-                if (*stack_ptr == kFiberStackSizeCheck) {
-                    stack_ptr++;
-                }
+            while (stack_ptr < stack_end && *stack_ptr == kFiberStackSizeCheck) {
+                stack_ptr++;
             }
 
             stack_margin =
@@ -513,6 +513,7 @@ s32 PS4_SYSV_ABI sceFiberRename(OrbisFiber* fiber, const char* name) {
     }
 
     strncpy(fiber->name, name, ORBIS_FIBER_MAX_NAME_LENGTH);
+    fiber->name[ORBIS_FIBER_MAX_NAME_LENGTH] = '\0';
     return ORBIS_OK;
 }
 

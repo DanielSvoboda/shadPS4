@@ -105,7 +105,8 @@ Error PS4_SYSV_ABI sceSaveDataDirNameSearch(const OrbisSaveDataDirNameSearchCond
 int PS4_SYSV_ABI sceSaveDataDirNameSearchInternal();
 int PS4_SYSV_ABI sceSaveDataDownload();
 int PS4_SYSV_ABI sceSaveDataGetAllSize();
-int PS4_SYSV_ABI sceSaveDataGetAppLaunchedUser();
+Error PS4_SYSV_ABI sceSaveDataGetAppLaunchedUser(
+    Libraries::UserService::OrbisUserServiceUserId* user_id);
 int PS4_SYSV_ABI sceSaveDataGetAutoUploadConditions();
 int PS4_SYSV_ABI sceSaveDataGetAutoUploadRequestInfo();
 int PS4_SYSV_ABI sceSaveDataGetAutoUploadSetting();
@@ -139,7 +140,7 @@ Error PS4_SYSV_ABI sceSaveDataInitialize2(void*);
 Error PS4_SYSV_ABI sceSaveDataInitialize3(void*);
 int PS4_SYSV_ABI sceSaveDataInitializeForCdlg();
 int PS4_SYSV_ABI sceSaveDataIsDeletingUsbDb();
-int PS4_SYSV_ABI sceSaveDataIsMounted();
+int PS4_SYSV_ABI sceSaveDataIsMounted(const OrbisSaveDataMountPoint* mountPoint);
 Error PS4_SYSV_ABI sceSaveDataLoadIcon(const OrbisSaveDataMountPoint* mountPoint,
                                        OrbisSaveDataIcon* icon);
 Error PS4_SYSV_ABI sceSaveDataMount(const OrbisSaveDataMount* mount,

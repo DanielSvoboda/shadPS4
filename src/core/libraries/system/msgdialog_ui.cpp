@@ -180,15 +180,20 @@ struct {
     nullptr,                                         // !!NOP
     "Camera not connected.",                         // CAMERA_NOT_CONNECTED
     "Warning: profile picture and name are not set", // WARNING_PROFILE_PICTURE_AND_NAME_NOT_SHARED
+    "PSN communication restriction.",                // PSN_COMMUNICATION_RESTRICTION
 };
 static_assert(std::size(system_message_texts) ==
-              static_cast<int>(SystemMessageType::WARNING_PROFILE_PICTURE_AND_NAME_NOT_SHARED) + 1);
+              static_cast<int>(SystemMessageType::PSN_COMMUNICATION_RESTRICTION) + 1);
 
 void MsgDialogUi::DrawSystemMessage() {
     // TODO: Implement go to settings & user profile
     const auto& [msg_type] = state->GetState<MsgDialogState::SystemState>();
-    ASSERT(msg_type <= SystemMessageType::WARNING_PROFILE_PICTURE_AND_NAME_NOT_SHARED);
-    auto [msg] = system_message_texts[static_cast<u32>(msg_type)];
+    static constexpr const char* unknown_message = "Unknown system message.";
+    const char* msg = unknown_message;
+    if (static_cast<u32>(msg_type) < std::size(system_message_texts) &&
+        system_message_texts[static_cast<u32>(msg_type)].text != nullptr) {
+        msg = system_message_texts[static_cast<u32>(msg_type)].text;
+    }
     DrawCenteredText(msg);
     const auto ws = GetWindowSize();
     SetCursorPos({

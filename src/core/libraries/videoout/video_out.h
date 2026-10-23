@@ -106,9 +106,10 @@ struct SceVideoOutDeviceCapabilityInfo {
 };
 
 struct SceVideoOutColorSettings {
-    float gamma;
-    u32 reserved[3];
+    float gamma[3];
+    u32 option;
 };
+static_assert(sizeof(SceVideoOutColorSettings) == 16);
 
 struct OrbisVideoOutEventData {
     u64 time : 12;
@@ -135,8 +136,10 @@ s32 PS4_SYSV_ABI sceVideoOutOpen(Libraries::UserService::OrbisUserServiceUserId 
 s32 PS4_SYSV_ABI sceVideoOutClose(s32 handle);
 s32 PS4_SYSV_ABI sceVideoOutGetEventId(const Kernel::OrbisKernelEvent* ev);
 s32 PS4_SYSV_ABI sceVideoOutGetEventData(const Kernel::OrbisKernelEvent* ev, s64* data);
-s32 PS4_SYSV_ABI sceVideoOutColorSettingsSetGamma(SceVideoOutColorSettings* settings, float gamma);
-s32 PS4_SYSV_ABI sceVideoOutAdjustColor(s32 handle, const SceVideoOutColorSettings* settings);
+s32 PS4_SYSV_ABI sceVideoOutColorSettingsSetGamma(SceVideoOutColorSettings* settings, float gamma,
+                                                  u32 sizeOfSettings);
+s32 PS4_SYSV_ABI sceVideoOutAdjustColor(s32 handle, const SceVideoOutColorSettings* settings,
+                                        u32 sizeOfSettings);
 
 // Internal system functions
 s32 sceVideoOutSubmitEopFlip(s32 handle, u32 buf_id, u32 mode, s64 flip_arg, void** unk);

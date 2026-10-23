@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <cstdlib>
+#include <cstring>
+#include <string_view>
 #include "common/elf_info.h"
 #include "common/singleton.h"
 #include "core/emulator_settings.h"
@@ -1745,8 +1747,15 @@ int PS4_SYSV_ABI sceSystemServiceGetGpuLoadEmulationMode() {
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceSystemServiceGetHdrToneMapLuminance() {
-    LOG_ERROR(Lib_SystemService, "(STUBBED) called");
+s32 PS4_SYSV_ABI
+sceSystemServiceGetHdrToneMapLuminance(OrbisSystemServiceHdrToneMapLuminance* luminance) {
+    if (luminance == nullptr) {
+        LOG_ERROR(Lib_SystemService, "Luminance is null");
+        return ORBIS_SYSTEM_SERVICE_ERROR_PARAMETER;
+    }
+    luminance->max_full_frame_tone_map_luminance = 100.0f;
+    luminance->max_tone_map_luminance = 100.0f;
+    luminance->min_tone_map_luminance = 0.0f;
     return ORBIS_OK;
 }
 
@@ -1789,6 +1798,7 @@ s32 PS4_SYSV_ABI sceSystemServiceGetStatus(OrbisSystemServiceStatus* status) {
     status->is_cpu_mode7_cpu_normal = true;
     status->is_game_live_streaming_on_air = false;
     status->is_out_of_vr_play_area = false;
+    std::memset(status->reserved, 0, sizeof(status->reserved));
     return ORBIS_OK;
 }
 
@@ -1988,16 +1998,62 @@ s32 PS4_SYSV_ABI sceSystemServiceParamGetInt(OrbisSystemServiceParamId param_id,
         *value = u32(EmulatorSettings.IsCircleEnter() ? OrbisSystemParamEnterButtonAssign::Circle
                                                       : OrbisSystemParamEnterButtonAssign::Cross);
         break;
+    case OrbisSystemServiceParamId::CcEnable:
+    case OrbisSystemServiceParamId::CcContentSpecified:
+    case OrbisSystemServiceParamId::CcFontType:
+    case OrbisSystemServiceParamId::CcCharColor:
+    case OrbisSystemServiceParamId::CcCharEdge:
+    case OrbisSystemServiceParamId::CcCharEdgeColor:
+    case OrbisSystemServiceParamId::CcCharBgColor:
+    case OrbisSystemServiceParamId::CcWindowColor:
+    case OrbisSystemServiceParamId::TextToSpeech:
+    case OrbisSystemServiceParamId::LargeText:
+    case OrbisSystemServiceParamId::BoldText:
+    case OrbisSystemServiceParamId::HighContrast:
+    case OrbisSystemServiceParamId::AutoScrollSpeed:
+    case OrbisSystemServiceParamId::InvertColors:
+    case OrbisSystemServiceParamId::ScreenReader:
+    case OrbisSystemServiceParamId::ScreenReaderSpeed:
+        *value = 0;
+        break;
+    case OrbisSystemServiceParamId::CcCharSize:
+    case OrbisSystemServiceParamId::CcCharOpacity:
+    case OrbisSystemServiceParamId::CcCharBgOpacity:
+    case OrbisSystemServiceParamId::CcWindowOpacity:
+        *value = 100;
+        break;
+    case OrbisSystemServiceParamId::ScreenReaderVolume:
+        *value = 50;
+        break;
     default:
         LOG_ERROR(Lib_SystemService, "param_id {} unsupported!", u32(param_id));
-        *value = 0;
+        return ORBIS_SYSTEM_SERVICE_ERROR_PARAMETER;
     }
 
     return ORBIS_OK;
 }
 
-int PS4_SYSV_ABI sceSystemServiceParamGetString() {
-    LOG_ERROR(Lib_SystemService, "(STUBBED) called");
+s32 PS4_SYSV_ABI sceSystemServiceParamGetString(OrbisSystemServiceParamId param_id, char* buf,
+                                                size_t buf_size) {
+    LOG_DEBUG(Lib_SystemService, "called param_id {}", u32(param_id));
+    if (buf == nullptr) {
+        LOG_ERROR(Lib_SystemService, "buf is null");
+        return ORBIS_SYSTEM_SERVICE_ERROR_PARAMETER;
+    }
+    switch (param_id) {
+    case OrbisSystemServiceParamId::SystemName: {
+        constexpr std::string_view system_name = "PS4";
+        if (buf_size < system_name.size() + 1) {
+            return ORBIS_SYSTEM_SERVICE_ERROR_PARAMETER;
+        }
+        std::memcpy(buf, system_name.data(), system_name.size());
+        buf[system_name.size()] = '\0';
+        break;
+    }
+    default:
+        LOG_ERROR(Lib_SystemService, "param_id {} unsupported!", u32(param_id));
+        return ORBIS_SYSTEM_SERVICE_ERROR_PARAMETER;
+    }
     return ORBIS_OK;
 }
 

@@ -96,7 +96,7 @@ s32 PS4_SYSV_ABI scePngEncCreate(const OrbisPngEncCreateParam* param, void* memo
     pngh->info_ptr = png_create_info_struct(pngh->png_ptr);
     if (pngh->info_ptr == nullptr) {
         png_destroy_write_struct(&pngh->png_ptr, nullptr);
-        return false;
+        return ORBIS_PNG_ENC_ERROR_FATAL;
     }
 
     *handle = pngh;
@@ -174,7 +174,8 @@ s32 PS4_SYSV_ABI scePngEncEncode(OrbisPngEncHandle handle, const OrbisPngEncEnco
     png_write_info(pngh->png_ptr, pngh->info_ptr);
 
     int channels = 4;
-    size_t row_stride = param->image_width * channels;
+    size_t row_stride = param->image_pitch != 0 ? param->image_pitch
+                                                : param->image_width * channels;
 
     uint32_t processed_height = 0;
 

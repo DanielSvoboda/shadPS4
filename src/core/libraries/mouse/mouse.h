@@ -23,6 +23,7 @@ struct OrbisMouseData {
     s32 tilt;
     u8 reserve[8];
 };
+static_assert(sizeof(OrbisMouseData) == 0x28);
 
 enum class MouseOpenBehaviour : u8 {
     Normal = 0,

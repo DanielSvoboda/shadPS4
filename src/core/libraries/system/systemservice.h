@@ -23,6 +23,27 @@ enum class OrbisSystemServiceParamId {
     Summertime = 5,
     SystemName = 6,
     GameParentalLevel = 7,
+    CcEnable = 100,
+    CcContentSpecified = 101,
+    CcFontType = 102,
+    CcCharSize = 103,
+    CcCharColor = 104,
+    CcCharEdge = 105,
+    CcCharEdgeColor = 106,
+    CcCharOpacity = 107,
+    CcCharBgColor = 108,
+    CcCharBgOpacity = 109,
+    CcWindowColor = 110,
+    CcWindowOpacity = 111,
+    TextToSpeech = 200,
+    LargeText = 201,
+    BoldText = 202,
+    HighContrast = 203,
+    AutoScrollSpeed = 204,
+    InvertColors = 205,
+    ScreenReader = 208,
+    ScreenReaderSpeed = 209,
+    ScreenReaderVolume = 210,
     EnterButtonAssign = 1000,
 };
 
@@ -80,6 +101,10 @@ enum class OrbisSystemServiceEventType {
     WebBrowserClosed = 0x10000012,
     ControllerSettingsClosed = 0x10000013,
     JoinTeamOnTeamMatchEvent = 0x10000014,
+    JoinFfaMatchEvent = 0x10000015,
+    JoinFfaTeamMatchEvent = 0x10000016,
+    GameIntent = 0x10000017,
+    UnifiedEntitlementUpdate = 0x10000018,
     OpenShareMenu = 0x30000000
 };
 
@@ -90,7 +115,7 @@ struct OrbisSystemServiceStatus {
     bool is_cpu_mode7_cpu_normal;
     bool is_game_live_streaming_on_air;
     bool is_out_of_vr_play_area;
-    u8 reserved[];
+    u8 reserved[125];
 };
 
 struct OrbisSystemServiceDisplaySafeAreaInfo {
@@ -479,7 +504,14 @@ s32 PS4_SYSV_ABI
 sceSystemServiceGetDisplaySafeAreaInfo(OrbisSystemServiceDisplaySafeAreaInfo* info);
 int PS4_SYSV_ABI sceSystemServiceGetEventForDaemon();
 int PS4_SYSV_ABI sceSystemServiceGetGpuLoadEmulationMode();
-int PS4_SYSV_ABI sceSystemServiceGetHdrToneMapLuminance();
+struct OrbisSystemServiceHdrToneMapLuminance {
+    float max_full_frame_tone_map_luminance;
+    float max_tone_map_luminance;
+    float min_tone_map_luminance;
+};
+
+s32 PS4_SYSV_ABI
+sceSystemServiceGetHdrToneMapLuminance(OrbisSystemServiceHdrToneMapLuminance* luminance);
 int PS4_SYSV_ABI sceSystemServiceGetLocalProcessStatusList();
 int PS4_SYSV_ABI sceSystemServiceGetParentSocket();
 int PS4_SYSV_ABI sceSystemServiceGetParentSocketForPsmKit();
@@ -508,7 +540,8 @@ int PS4_SYSV_ABI sceSystemServiceNavigateToGoBack();
 int PS4_SYSV_ABI sceSystemServiceNavigateToGoBackWithValue();
 int PS4_SYSV_ABI sceSystemServiceNavigateToGoHome();
 s32 PS4_SYSV_ABI sceSystemServiceParamGetInt(OrbisSystemServiceParamId param_id, int* value);
-int PS4_SYSV_ABI sceSystemServiceParamGetString();
+s32 PS4_SYSV_ABI sceSystemServiceParamGetString(OrbisSystemServiceParamId param_id, char* buf,
+                                                size_t buf_size);
 int PS4_SYSV_ABI sceSystemServicePowerTick();
 int PS4_SYSV_ABI sceSystemServiceRaiseExceptionLocalProcess();
 s32 PS4_SYSV_ABI sceSystemServiceReceiveEvent(OrbisSystemServiceEvent* event);

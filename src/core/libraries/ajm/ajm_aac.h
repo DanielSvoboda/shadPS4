@@ -60,6 +60,7 @@ private:
     const u32 m_channels;
     std::vector<s16> m_pcm_buffer;
     std::vector<float> m_resample_buffer;
+    std::vector<s32> m_resample_buffer_s32;
 
     u32 m_skip_frames = 0;
     InitializeParameters m_init_params = {};

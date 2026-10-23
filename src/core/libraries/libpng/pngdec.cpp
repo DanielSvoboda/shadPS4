@@ -70,7 +70,7 @@ s32 PS4_SYSV_ABI scePngDecCreate(const OrbisPngDecCreateParam* param, void* memo
     pngh->info_ptr = png_create_info_struct(pngh->png_ptr);
     if (pngh->info_ptr == nullptr) {
         png_destroy_read_struct(&pngh->png_ptr, nullptr, nullptr);
-        return false;
+        return ORBIS_PNG_DEC_ERROR_FATAL;
     }
 
     *handle = pngh;
@@ -182,7 +182,11 @@ s32 PS4_SYSV_ABI scePngDecDecodeWithInputControl() {
 }
 
 s32 PS4_SYSV_ABI scePngDecDelete(OrbisPngDecHandle handle) {
-    auto pngh = *(PngHandler**)handle;
+    if (handle == nullptr) {
+        LOG_ERROR(Lib_Png, "invalid handle!");
+        return ORBIS_PNG_DEC_ERROR_INVALID_HANDLE;
+    }
+    auto pngh = (PngHandler*)handle;
     png_destroy_read_struct(&pngh->png_ptr, &pngh->info_ptr, nullptr);
     return ORBIS_OK;
 }

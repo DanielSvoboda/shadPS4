@@ -724,9 +724,11 @@ s32 PS4_SYSV_ABI sceAudioOutSetVolume(s32 handle, s32 flag, s32* vol) {
         return ORBIS_AUDIO_OUT_ERROR_INVALID_POINTER;
     }
 
-    if (*vol > ORBIS_AUDIO_OUT_VOLUME_0DB) {
-        LOG_ERROR(Lib_AudioOut, "Invalid volume");
-        return ORBIS_AUDIO_OUT_ERROR_INVALID_VOLUME;
+    for (u32 i = 0; i < 8; i++) {
+        if ((flag & (1u << i)) && (vol[i] < 0 || vol[i] > ORBIS_AUDIO_OUT_VOLUME_0DB)) {
+            LOG_ERROR(Lib_AudioOut, "Invalid volume");
+            return ORBIS_AUDIO_OUT_ERROR_INVALID_VOLUME;
+        }
     }
 
     // Get port with shared lock (read-only access to table)
@@ -745,21 +747,21 @@ s32 PS4_SYSV_ABI sceAudioOutSetVolume(s32 handle, s32 flag, s32* vol) {
 
     // Set volumes based on flags
     if (flag & ORBIS_AUDIO_VOLUME_FLAG_L_CH)
-        port->volume[0] = *vol;
+        port->volume[0] = vol[0];
     if (flag & ORBIS_AUDIO_VOLUME_FLAG_R_CH)
-        port->volume[1] = *vol;
+        port->volume[1] = vol[1];
     if (flag & ORBIS_AUDIO_VOLUME_FLAG_C_CH)
-        port->volume[2] = *vol;
+        port->volume[2] = vol[2];
     if (flag & ORBIS_AUDIO_VOLUME_FLAG_LFE_CH)
-        port->volume[3] = *vol;
+        port->volume[3] = vol[3];
     if (flag & ORBIS_AUDIO_VOLUME_FLAG_LS_CH)
-        port->volume[4] = *vol;
+        port->volume[4] = vol[4];
     if (flag & ORBIS_AUDIO_VOLUME_FLAG_RS_CH)
-        port->volume[5] = *vol;
+        port->volume[5] = vol[5];
     if (flag & ORBIS_AUDIO_VOLUME_FLAG_LE_CH)
-        port->volume[6] = *vol;
+        port->volume[6] = vol[6];
     if (flag & ORBIS_AUDIO_VOLUME_FLAG_RE_CH)
-        port->volume[7] = *vol;
+        port->volume[7] = vol[7];
 
     port->impl->SetVolume(port->volume);
 

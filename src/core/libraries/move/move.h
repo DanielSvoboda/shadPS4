@@ -42,6 +42,7 @@ struct OrbisMoveData {
     s32 count;
     float temperature;
 };
+static_assert(sizeof(OrbisMoveData) == 0x40);
 
 void RegisterLib(Core::Loader::SymbolsResolver* sym);
 } // namespace Libraries::Move

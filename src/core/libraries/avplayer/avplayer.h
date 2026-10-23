@@ -231,6 +231,13 @@ struct AvPlayerInitDataEx {
     s32 num_output_video_framebuffers;
     bool auto_start;
     u8 reserved[3];
+
+    u32 audio_decoder_stack_size;
+    u32 video_decoder_stack_size;
+    u32 demuxer_stack_size;
+    u32 controller_stack_size;
+    u32 http_streaming_stack_size;
+    u32 file_streaming_stack_size;
 };
 
 enum class AvPlayerVideoDecoderType {

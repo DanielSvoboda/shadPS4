@@ -33,7 +33,7 @@ enum class OrbisPadDeviceClass {
     Navigation = 5,
     SteeringWheel = 6,
     Stick = 7,
-    FightStick = 8,
+    FlightStick = 8,
     Gun = 9,
 };
 
@@ -196,6 +196,7 @@ struct OrbisPadData {
     u8 deviceUniqueDataLen;
     u8 deviceUniqueData[ORBIS_PAD_MAX_DEVICE_UNIQUE_DATA_SIZE];
 };
+static_assert(sizeof(OrbisPadData) == 0x78);
 
 struct OrbisPadTouchPadInformation {
     float pixelDensity;

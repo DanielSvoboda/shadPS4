@@ -70,6 +70,7 @@ struct OrbisVideodec2OutputInfo {
     bool is_valid;
     bool is_error_frame;
     u8 picture_count;
+    bool is_discarded_frame;
     OrbisVideodec2CodecType codec_type;
     u32 frame_width;
     u32 frame_pitch;

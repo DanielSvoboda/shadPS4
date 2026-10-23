@@ -163,7 +163,8 @@ DecoderResult AjmMp3Decoder::ProcessData(std::span<u8>& in_buf, SparseOutputBuff
         std::memcpy(&raw_header, pkt->data, sizeof(raw_header));
         m_header = std::byteswap(raw_header);
         AjmDecMp3ParseFrame info{};
-        auto res = ParseMp3Header(pkt->data, pkt->size, true, &info);
+        auto res = ParseMp3Header(pkt->data, pkt->size,
+                                  !True(m_flags & AjmMp3CodecFlags::IgnoreOfl), &info);
         ASSERT(res == ORBIS_OK);
 
         m_frame_samples = info.samples_per_channel;

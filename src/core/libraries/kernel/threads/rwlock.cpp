@@ -251,6 +251,9 @@ int PS4_SYSV_ABI posix_pthread_rwlockattr_destroy(PthreadRwlockAttrT* rwlockattr
 
 int PS4_SYSV_ABI posix_pthread_rwlockattr_getpshared(const PthreadRwlockAttrT* rwlockattr,
                                                      int* pshared) {
+    if (rwlockattr == nullptr || *rwlockattr == nullptr || pshared == nullptr) {
+        return POSIX_EINVAL;
+    }
     *pshared = (*rwlockattr)->pshared;
     return 0;
 }
@@ -275,13 +278,14 @@ int PS4_SYSV_ABI posix_pthread_rwlockattr_init(PthreadRwlockAttrT* rwlockattr) {
     }
 
     prwlockattr->pshared = 0;
+    prwlockattr->type = 1;
     *rwlockattr = prwlockattr;
     return 0;
 }
 
 int PS4_SYSV_ABI posix_pthread_rwlockattr_settype_np(const PthreadRwlockAttrT* rwlockattr,
                                                      int type) {
-    if (rwlockattr == nullptr || *rwlockattr == nullptr || (*rwlockattr)->type > 2) {
+    if (rwlockattr == nullptr || *rwlockattr == nullptr || type < 1 || type > 2) {
         return POSIX_EINVAL;
     }
     (*rwlockattr)->type = type;
@@ -290,7 +294,7 @@ int PS4_SYSV_ABI posix_pthread_rwlockattr_settype_np(const PthreadRwlockAttrT* r
 
 int PS4_SYSV_ABI posix_pthread_rwlockattr_setpshared(PthreadRwlockAttrT* rwlockattr, int pshared) {
     /* Only PTHREAD_PROCESS_PRIVATE is supported. */
-    if (pshared != 0) {
+    if (rwlockattr == nullptr || *rwlockattr == nullptr || pshared != 0) {
         return POSIX_EINVAL;
     }
 

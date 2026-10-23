@@ -72,15 +72,21 @@ SaveDialogState::SaveDialogState(const OrbisSaveDataDialogParam& param) {
                                   .value_or(ElfInfo::Instance().GameSerial());
 
     const auto item = param.items;
-    this->user_id = item->userId;
-
-    if (item->titleId == nullptr) {
+    if (item == nullptr) {
+        // Message dialogs (USER_MSG/SYSTEM_MSG/ERROR_CODE/PROGRESS_BAR) pass no items.
+        this->user_id = -1;
         this->title_id = game_serial;
     } else {
-        this->title_id = item->titleId->data.to_string();
+        this->user_id = item->userId;
+
+        if (item->titleId == nullptr) {
+            this->title_id = game_serial;
+        } else {
+            this->title_id = item->titleId->data.to_string();
+        }
     }
 
-    if (item->dirName != nullptr) {
+    if (item != nullptr && item->dirName != nullptr) {
         for (u32 i = 0; i < item->dirNameNum; i++) {
             const auto dir_name = item->dirName[i].data.to_view();
 
@@ -129,7 +135,7 @@ SaveDialogState::SaveDialogState(const OrbisSaveDataDialogParam& param) {
         }
     }
 
-    if (type == DialogType::SAVE && item->newItem != nullptr) {
+    if (item != nullptr && type == DialogType::SAVE && item->newItem != nullptr) {
         RefCountedTexture icon;
         std::string title{"New Save"};
 
@@ -153,12 +159,14 @@ SaveDialogState::SaveDialogState(const OrbisSaveDataDialogParam& param) {
         };
     }
 
-    if (item->focusPos != FocusPos::DIRNAME) {
-        this->focus_pos = item->focusPos;
-    } else if (item->focusPosDirName != nullptr) {
-        this->focus_pos = item->focusPosDirName->data.to_string();
+    if (item != nullptr) {
+        if (item->focusPos != FocusPos::DIRNAME) {
+            this->focus_pos = item->focusPos;
+        } else if (item->focusPosDirName != nullptr) {
+            this->focus_pos = item->focusPosDirName->data.to_string();
+        }
+        this->style = item->itemStyle;
     }
-    this->style = item->itemStyle;
 
     switch (mode) {
     case SaveDataDialogMode::USER_MSG: {

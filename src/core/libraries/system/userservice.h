@@ -64,10 +64,11 @@ int PS4_SYSV_ABI sceUserServiceTerminateForShellCore();
 int PS4_SYSV_ABI sceUserServiceDestroyUser();
 int PS4_SYSV_ABI sceUserServiceGetAccessibilityKeyremapData();
 int PS4_SYSV_ABI sceUserServiceGetAccessibilityKeyremapEnable();
-int PS4_SYSV_ABI sceUserServiceGetAccessibilityPressAndHoldDelay();
-int PS4_SYSV_ABI sceUserServiceGetAccessibilityVibration();
+s32 PS4_SYSV_ABI sceUserServiceGetAccessibilityPressAndHoldDelay(s32 user_id,
+                                                                s32* press_and_hold_delay);
+s32 PS4_SYSV_ABI sceUserServiceGetAccessibilityVibration(s32 user_id, s32* vibration);
 int PS4_SYSV_ABI sceUserServiceGetAccessibilityZoom();
-int PS4_SYSV_ABI sceUserServiceGetAccessibilityZoomEnabled();
+s32 PS4_SYSV_ABI sceUserServiceGetAccessibilityZoomEnabled(s32 user_id, s32* zoom);
 int PS4_SYSV_ABI sceUserServiceGetAccountRemarks();
 int PS4_SYSV_ABI sceUserServiceGetAgeVerified();
 int PS4_SYSV_ABI sceUserServiceGetAppearOfflineSetting();
