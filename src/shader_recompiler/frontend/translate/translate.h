@@ -5,6 +5,7 @@
 
 #include <span>
 #include <unordered_map>
+#include <vector>
 #include "shader_recompiler/frontend/fetch_shader.h"
 #include "shader_recompiler/frontend/instruction.h"
 #include "shader_recompiler/info.h"
@@ -68,6 +69,7 @@ public:
     void Translate(IR::Block* block, u32 pc, IR::Condition cond,
                    std::span<const GcnInst> inst_list);
     void TranslateInstruction(const GcnInst& inst);
+    void AnalyzeMovRel(std::span<const GcnInst> inst_list);
 
     // Instruction categories
     void EmitPrologue(IR::Block* first_block);
@@ -385,6 +387,7 @@ private:
     IR::F32 LegacyMul(const IR::F32& a, const IR::F32& b);
     IR::U32 VMovRelSHelper(u32 src_vgprno, const IR::U32 m0);
     void VMovRelDHelper(u32 dst_vgprno, const IR::U32 src_val, const IR::U32 m0);
+    u32 GetMovRelEndVgpr(u32 base_vgprno) const;
 
     void ExportRenderTarget(const GcnInst& inst);
     void ExportDepth(const GcnInst& inst);
@@ -400,6 +403,10 @@ private:
     u32 next_vgpr_num;
     std::unordered_map<u32, IR::VectorReg> vgpr_map;
     std::array<IR::Attribute, MaxInterpVgpr> vgpr_to_interp{};
+    // Filled by AnalyzeMovRel to bound the select chains emitted for V_MOVREL.
+    std::vector<u32> movrel_cluster_starts;
+    std::vector<u32> movrel_m0_values;
+    bool movrel_m0_all_constants = true;
     FetchShaderData fetch_data{};
     bool opcode_missing = false;
     u32 pc{};

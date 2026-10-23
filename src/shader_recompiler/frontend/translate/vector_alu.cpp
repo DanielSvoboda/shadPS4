@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2024-2026 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <algorithm>
 #include <limits>
+#include <vector>
 #include "shader_recompiler/frontend/opcodes.h"
 #include "shader_recompiler/frontend/translate/translate.h"
 #include "shader_recompiler/ir/attribute.h"
@@ -1998,13 +2000,148 @@ IR::F32 Translator::LegacyMul(const IR::F32& a, const IR::F32& b) {
     return IR::F32{ir.Select(either_zero, zero, ir.FPMul(a, b))};
 }
 
-// TODO: add range analysis pass to hopefully put an upper bound on m0, and only select one of
-// [src_vgprno, src_vgprno + max_m0]. Same for dst regs we may write back to
+void Translator::AnalyzeMovRel(std::span<const GcnInst> inst_list) {
+    const u32 num_vgprs = runtime_info.props.num_allocated_vgprs;
+    if (num_vgprs == 0) {
+        return;
+    }
+
+    std::vector<bool> has_movrels(num_vgprs, false);
+    std::vector<bool> has_movreld(num_vgprs, false);
+    bool any_movrel = false;
+
+    for (const auto& inst : inst_list) {
+        // The value read by GetM0 can only come from an instruction whose destination
+        // lowers to SetM0, so recording these writes bounds every m0 a V_MOVREL can see.
+        if (inst.dst[0].field == OperandField::M0 || inst.dst[1].field == OperandField::M0) {
+            if (inst.opcode != Opcode::S_MOV_B32) {
+                movrel_m0_all_constants = false;
+            } else {
+                const auto& src = inst.src[0];
+                switch (src.field) {
+                case OperandField::ConstZero:
+                    movrel_m0_values.push_back(0);
+                    break;
+                case OperandField::SignedConstIntPos:
+                    movrel_m0_values.push_back(src.code - SignedConstIntPosMin + 1);
+                    break;
+                case OperandField::SignedConstIntNeg:
+                    movrel_m0_values.push_back(u32(-s32(src.code) + SignedConstIntNegMin - 1));
+                    break;
+                case OperandField::LiteralConst:
+                    movrel_m0_values.push_back(src.code);
+                    break;
+                default:
+                    movrel_m0_all_constants = false;
+                    break;
+                }
+            }
+        }
+
+        if (inst.opcode == Opcode::V_MOVRELS_B32) {
+            const u32 src_vgprno = inst.src[0].code - static_cast<u32>(IR::VectorReg::V0);
+            if (src_vgprno < num_vgprs) {
+                has_movrels[src_vgprno] = true;
+                any_movrel = true;
+            }
+        } else if (inst.opcode == Opcode::V_MOVRELD_B32) {
+            const u32 dst_vgprno = inst.dst[0].code - static_cast<u32>(IR::VectorReg::V0);
+            if (dst_vgprno < num_vgprs) {
+                has_movreld[dst_vgprno] = true;
+                any_movrel = true;
+            }
+        } else if (inst.opcode == Opcode::V_MOVRELSD_B32) {
+            const u32 src_vgprno = inst.src[0].code - static_cast<u32>(IR::VectorReg::V0);
+            const u32 dst_vgprno = inst.dst[0].code - static_cast<u32>(IR::VectorReg::V0);
+            if (src_vgprno < num_vgprs) {
+                has_movrels[src_vgprno] = true;
+                any_movrel = true;
+            }
+            if (dst_vgprno < num_vgprs) {
+                has_movreld[dst_vgprno] = true;
+                any_movrel = true;
+            }
+        }
+    }
+
+    if (movrel_m0_all_constants) {
+        std::sort(movrel_m0_values.begin(), movrel_m0_values.end());
+        movrel_m0_values.erase(std::unique(movrel_m0_values.begin(), movrel_m0_values.end()),
+                               movrel_m0_values.end());
+        // An m0 that is never written is undefined on hardware, keep the dynamic path.
+        if (movrel_m0_values.empty()) {
+            movrel_m0_all_constants = false;
+        }
+    }
+    if (!any_movrel) {
+        return;
+    }
+
+    // Heuristic for dynamic m0 (e.g. `s_mov_b32 m0, s4`): games lay out the dynamically
+    // indexed VGPR arrays as runs of consecutive base registers. A run of bases close
+    // together is treated as one cluster, and the select chain of a base then ends at
+    // the start of the next cluster instead of scanning the whole register file.
+    // Until Dawn indexes its arrays like this:
+    //     s_mov_b32 m0, s4
+    //     v_movreld_b32 v1, s12
+    //     v_movreld_b32 v2, s13
+    //     v_movreld_b32 v3, s14
+    //     v_movreld_b32 v4, s15
+    constexpr u32 MaxClusterGap = 16;
+    constexpr u32 MaxMixedUseGap = 4;
+
+    u32 prev_base = num_vgprs;
+    bool cluster_has_s = false;
+    bool cluster_has_d = false;
+    for (u32 v = 0; v < num_vgprs; ++v) {
+        if (!has_movrels[v] && !has_movreld[v]) {
+            continue;
+        }
+        const bool is_s = has_movrels[v];
+        const bool is_d = has_movreld[v];
+        if (prev_base == num_vgprs || (v - prev_base > MaxClusterGap) ||
+            ((v - prev_base > MaxMixedUseGap) &&
+             ((is_s && !is_d && !cluster_has_s) || (is_d && !is_s && !cluster_has_d)))) {
+            movrel_cluster_starts.push_back(v);
+            cluster_has_s = is_s;
+            cluster_has_d = is_d;
+        } else {
+            cluster_has_s |= is_s;
+            cluster_has_d |= is_d;
+        }
+        prev_base = v;
+    }
+}
+
+u32 Translator::GetMovRelEndVgpr(u32 base_vgprno) const {
+    for (const u32 start : movrel_cluster_starts) {
+        if (start > base_vgprno) {
+            return start;
+        }
+    }
+    return runtime_info.props.num_allocated_vgprs;
+}
 
 IR::U32 Translator::VMovRelSHelper(u32 src_vgprno, const IR::U32 m0) {
     // Read from VGPR0 by default when src_vgprno + m0 > num_allocated_vgprs
     IR::U32 src_val = ir.GetVectorReg<IR::U32>(IR::VectorReg::V0);
-    for (u32 i = src_vgprno; i < runtime_info.props.num_allocated_vgprs; i++) {
+    const u32 num_vgprs = runtime_info.props.num_allocated_vgprs;
+    if (movrel_m0_all_constants) {
+        // m0 can only hold one of the constants recorded by AnalyzeMovRel,
+        // so a select per constant is equivalent to the full chain.
+        for (const u32 offset : movrel_m0_values) {
+            if (u64(src_vgprno) + offset >= num_vgprs) {
+                continue;
+            }
+            const IR::U1 cond = ir.IEqual(m0, ir.Imm32(offset));
+            src_val = IR::U32{ir.Select(
+                cond, ir.GetVectorReg<IR::U32>(IR::VectorReg::V0 + src_vgprno + offset), src_val)};
+        }
+        return src_val;
+    }
+
+    const u32 end_vgprno = GetMovRelEndVgpr(src_vgprno);
+    for (u32 i = src_vgprno; i < end_vgprno; i++) {
         const IR::U1 cond = ir.IEqual(m0, ir.Imm32(i - src_vgprno));
         src_val =
             IR::U32{ir.Select(cond, ir.GetVectorReg<IR::U32>(IR::VectorReg::V0 + i), src_val)};
@@ -2013,7 +2150,23 @@ IR::U32 Translator::VMovRelSHelper(u32 src_vgprno, const IR::U32 m0) {
 }
 
 void Translator::VMovRelDHelper(u32 dst_vgprno, const IR::U32 src_val, const IR::U32 m0) {
-    for (u32 i = dst_vgprno; i < runtime_info.props.num_allocated_vgprs; i++) {
+    const u32 num_vgprs = runtime_info.props.num_allocated_vgprs;
+    if (movrel_m0_all_constants) {
+        for (const u32 offset : movrel_m0_values) {
+            if (u64(dst_vgprno) + offset >= num_vgprs) {
+                continue;
+            }
+            const IR::U1 cond = ir.IEqual(m0, ir.Imm32(offset));
+            const IR::VectorReg reg{IR::VectorReg::V0 + dst_vgprno + offset};
+            const IR::U32 dst_val =
+                IR::U32{ir.Select(cond, src_val, ir.GetVectorReg<IR::U32>(reg))};
+            ir.SetVectorReg(reg, dst_val);
+        }
+        return;
+    }
+
+    const u32 end_vgprno = GetMovRelEndVgpr(dst_vgprno);
+    for (u32 i = dst_vgprno; i < end_vgprno; i++) {
         const IR::U1 cond = ir.IEqual(m0, ir.Imm32(i - dst_vgprno));
         const IR::U32 dst_val =
             IR::U32{ir.Select(cond, src_val, ir.GetVectorReg<IR::U32>(IR::VectorReg::V0 + i))};
