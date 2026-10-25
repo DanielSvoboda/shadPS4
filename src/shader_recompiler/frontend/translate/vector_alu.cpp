@@ -1087,9 +1087,11 @@ void Translator::V_RCP_F64(const GcnInst& inst) {
 void Translator::V_RSQ_LEGACY_F32(const GcnInst& inst) {
     const IR::F32 src0{GetSrc<IR::F32>(inst.src[0])};
     const IR::F32 result{ir.FPRecipSqrt(src0)};
-    const IR::F32 max_val{ir.Imm32(std::numeric_limits<float>::max())};
-    const IR::F32 min_val{ir.Imm32(-std::numeric_limits<float>::max())};
-    const IR::F32 clamped{ir.FPClamp(result, min_val, max_val)};
+    // PS4 GPU: rsq(0) is 0, +-Inf from rsq becomes +FLT_MAX, NaN stays NaN.
+    constexpr float max = std::numeric_limits<float>::max();
+    const IR::F32 signed_max{
+        ir.Select(ir.FPLessThan(result, ir.Imm32(0.0f)), ir.Imm32(-max), ir.Imm32(max))};
+    const IR::F32 clamped{ir.Select(ir.FPIsInf(result), signed_max, result)};
     const IR::F32 zero{ir.Imm32(0.0f)};
     const IR::F32 output{ir.Select(ir.FPEqual(src0, zero), zero, clamped)};
     SetDst(inst.dst[0], output);
@@ -1103,17 +1105,21 @@ void Translator::V_RSQ_F32(const GcnInst& inst) {
 void Translator::V_RCP_CLAMP_F32(const GcnInst& inst) {
     const IR::F32 src0{GetSrc<IR::F32>(inst.src[0])};
     const IR::F32 result{ir.FPRecip(src0)};
-    const IR::F32 max_val{ir.Imm32(std::numeric_limits<float>::max())};
-    const IR::F32 min_val{ir.Imm32(-std::numeric_limits<float>::max())};
-    SetDst(inst.dst[0], ir.FPClamp(result, min_val, max_val));
+    // PS4 GPU: +-Inf becomes +-FLT_MAX, NaN stays NaN.
+    constexpr float max = std::numeric_limits<float>::max();
+    const IR::F32 signed_max{
+        ir.Select(ir.FPLessThan(result, ir.Imm32(0.0f)), ir.Imm32(-max), ir.Imm32(max))};
+    SetDst(inst.dst[0], IR::F32{ir.Select(ir.FPIsInf(result), signed_max, result)});
 }
 
 void Translator::V_RSQ_CLAMP_F32(const GcnInst& inst) {
     const IR::F32 src0{GetSrc<IR::F32>(inst.src[0])};
     const IR::F32 result{ir.FPRecipSqrt(src0)};
-    const IR::F32 max_val{ir.Imm32(std::numeric_limits<float>::max())};
-    const IR::F32 min_val{ir.Imm32(-std::numeric_limits<float>::max())};
-    SetDst(inst.dst[0], ir.FPClamp(result, min_val, max_val));
+    // PS4 GPU: +-Inf becomes +-FLT_MAX, NaN stays NaN.
+    constexpr float max = std::numeric_limits<float>::max();
+    const IR::F32 signed_max{
+        ir.Select(ir.FPLessThan(result, ir.Imm32(0.0f)), ir.Imm32(-max), ir.Imm32(max))};
+    SetDst(inst.dst[0], IR::F32{ir.Select(ir.FPIsInf(result), signed_max, result)});
 }
 
 void Translator::V_SQRT_F32(const GcnInst& inst) {

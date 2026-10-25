@@ -293,6 +293,19 @@ constexpr CompMapping RemapSwizzle(const DataFormat format, const CompMapping sw
         result.a = swizzle.a;
         return result;
     }
+    case DataFormat::FormatFmask8_S2_F1:
+    case DataFormat::FormatFmask8_S4_F1:
+    case DataFormat::FormatFmask8_S8_F1:
+    case DataFormat::FormatFmask8_S2_F2:
+    case DataFormat::FormatFmask8_S4_F2:
+    case DataFormat::FormatFmask8_S4_F4:
+    case DataFormat::FormatFmask16_S16_F1:
+    case DataFormat::FormatFmask16_S8_F2:
+    case DataFormat::FormatFmask32_S16_F2:
+    case DataFormat::FormatFmask32_S8_F4:
+    case DataFormat::FormatFmask32_S8_F8:
+    case DataFormat::FormatFmask64_S16_F4:
+    case DataFormat::FormatFmask64_S16_F8:
     case DataFormat::Format8:
     case DataFormat::Format16:
     case DataFormat::Format32: {
@@ -397,7 +410,7 @@ constexpr bool IsFmask(DataFormat format) {
 std::string_view NameOf(DataFormat fmt);
 std::string_view NameOf(NumberFormat fmt);
 
-constexpr u32 NUM_ENTRIES = 42;
+constexpr u32 NUM_ENTRIES = 64;
 
 extern const std::array<s32, NUM_ENTRIES> NUM_COMPONENTS;
 extern const std::array<s32, NUM_ENTRIES> BITS_PER_BLOCK;

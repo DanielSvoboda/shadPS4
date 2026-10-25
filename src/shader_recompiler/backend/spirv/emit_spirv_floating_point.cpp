@@ -44,20 +44,21 @@ Id EmitFPFma64(EmitContext& ctx, IR::Inst* inst, Id a, Id b, Id c) {
     return Decorate(ctx, inst, ctx.OpFma(ctx.F64[1], a, b, c));
 }
 
+// GCN min/max return the non-NaN operand (NMin/NMax); FMin/FMax leave it undefined.
 Id EmitFPMax32(EmitContext& ctx, Id a, Id b) {
-    return ctx.OpFMax(ctx.F32[1], a, b);
+    return ctx.OpNMax(ctx.F32[1], a, b);
 }
 
 Id EmitFPMax64(EmitContext& ctx, Id a, Id b) {
-    return ctx.OpFMax(ctx.F64[1], a, b);
+    return ctx.OpNMax(ctx.F64[1], a, b);
 }
 
 Id EmitFPMin32(EmitContext& ctx, Id a, Id b) {
-    return ctx.OpFMin(ctx.F32[1], a, b);
+    return ctx.OpNMin(ctx.F32[1], a, b);
 }
 
 Id EmitFPMin64(EmitContext& ctx, Id a, Id b) {
-    return ctx.OpFMin(ctx.F64[1], a, b);
+    return ctx.OpNMin(ctx.F64[1], a, b);
 }
 
 Id EmitFPMinTri32(EmitContext& ctx, Id a, Id b, Id c) {

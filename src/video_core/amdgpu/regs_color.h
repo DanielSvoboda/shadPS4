@@ -190,7 +190,7 @@ struct ColorBuffer {
     } cmask_slice;
     u32 fmask_base_address;
     struct {
-        u32 tile_max : 14;
+        u32 tile_max : 22;
     } fmask_slice;
     u32 clear_word0;
     u32 clear_word1;

@@ -767,6 +767,35 @@ static constexpr std::array formats{
                             vk::Format::eBc7UnormBlock),
     CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatBc7, AmdGpu::NumberFormat::Srgb,
                             vk::Format::eBc7SrgbBlock),
+
+    // Fmask surfaces are per-pixel fragment masks, sampled as raw uint.
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask8_S2_F1, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR8Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask8_S4_F1, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR8Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask8_S8_F1, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR8Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask8_S2_F2, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR8Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask8_S4_F2, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR8Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask8_S4_F4, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR8Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask16_S16_F1, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR16Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask16_S8_F2, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR16Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask32_S16_F2, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR32Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask32_S8_F4, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR32Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask32_S8_F8, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR32Uint),
+    // R64Uint is not sampleable on most desktop drivers; use two 32-bit channels.
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask64_S16_F4, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR32G32Uint),
+    CreateSurfaceFormatInfo(AmdGpu::DataFormat::FormatFmask64_S16_F8, AmdGpu::NumberFormat::Uint,
+                            vk::Format::eR32G32Uint),
 };
 
 std::span<const SurfaceFormatInfo> SurfaceFormats() {

@@ -128,6 +128,18 @@ struct QuadRectListEmitter : public Sirit::Module {
             OpStore(OpAccessChain(output_vec4, outputs[i], invocation_id), out_param);
         }
 
+        // Clip distances ride the same emulated attribute path as the other params.
+        if (fs_info.clip_distance_emulation) {
+            std::array<Id, 3> clip_dist;
+            for (int i = 0; i < 3; i++) {
+                clip_dist[i] = OpLoad(vec4_id, OpAccessChain(input_vec4, clip_dist_in, Int(i)));
+            }
+            const Id clip_dist3{interpolate(clip_dist[0], clip_dist[1], clip_dist[2])};
+            const Id cd_in{OpLoad(vec4_id, OpAccessChain(input_vec4, clip_dist_in, index))};
+            const Id cd_out{OpSelect(vec4_id, invocation_3, clip_dist3, cd_in)};
+            OpStore(OpAccessChain(output_vec4, clip_dist_out, invocation_id), cd_out);
+        }
+
         OpReturn();
         OpFunctionEnd();
     }
@@ -167,6 +179,11 @@ struct QuadRectListEmitter : public Sirit::Module {
             OpStore(OpAccessChain(output_vec4, outputs[i], invocation_id), in_param);
         }
 
+        if (fs_info.clip_distance_emulation) {
+            const Id cd{OpLoad(vec4_id, OpAccessChain(input_vec4, clip_dist_in, index))};
+            OpStore(OpAccessChain(output_vec4, clip_dist_out, invocation_id), cd);
+        }
+
         OpReturn();
         OpFunctionEnd();
     }
@@ -192,6 +209,11 @@ struct QuadRectListEmitter : public Sirit::Module {
         for (int i = 0; i < inputs.size(); i++) {
             const Id param{OpLoad(vec4_id, OpAccessChain(input_vec4, inputs[i], index))};
             OpStore(outputs[i], param);
+        }
+
+        if (fs_info.clip_distance_emulation) {
+            const Id cd{OpLoad(vec4_id, OpAccessChain(input_vec4, clip_dist_in, index))};
+            OpStore(clip_dist_out, cd);
         }
 
         OpReturn();
@@ -236,6 +258,7 @@ private:
     }
 
     void DefineOutputs(spv::ExecutionModel model) {
+        const u32 location_shift = fs_info.clip_distance_emulation ? 1U : 0U;
         if (model == spv::ExecutionModel::TessellationControl) {
             const Id gl_per_vertex_array{TypeArray(gl_per_vertex_type, Constant(uint_id, 4U))};
             gl_out = AddOutput(gl_per_vertex_array);
@@ -261,11 +284,18 @@ private:
             outputs.emplace_back(AddOutput(model == spv::ExecutionModel::TessellationControl
                                                ? TypeArray(vec4_id, Int(4))
                                                : vec4_id));
-            Decorate(outputs.back(), spv::Decoration::Location, input.param_index);
+            Decorate(outputs.back(), spv::Decoration::Location, input.param_index + location_shift);
+        }
+        if (fs_info.clip_distance_emulation) {
+            clip_dist_out = AddOutput(model == spv::ExecutionModel::TessellationControl
+                                          ? TypeArray(vec4_id, Int(4))
+                                          : vec4_id);
+            Decorate(clip_dist_out, spv::Decoration::Location, 0U);
         }
     }
 
     void DefineInputs(spv::ExecutionModel model) {
+        const u32 location_shift = fs_info.clip_distance_emulation ? 1U : 0U;
         if (model == spv::ExecutionModel::TessellationEvaluation) {
             gl_tess_coord = AddInput(vec3_id);
             Decorate(gl_tess_coord, spv::Decoration::BuiltIn, spv::BuiltIn::TessCoord);
@@ -283,7 +313,11 @@ private:
                 continue;
             }
             inputs.emplace_back(AddInput(float_arr));
-            Decorate(inputs.back(), spv::Decoration::Location, input.param_index);
+            Decorate(inputs.back(), spv::Decoration::Location, input.param_index + location_shift);
+        }
+        if (fs_info.clip_distance_emulation) {
+            clip_dist_in = AddInput(float_arr);
+            Decorate(clip_dist_in, spv::Decoration::Location, 0U);
         }
     }
 
@@ -317,6 +351,8 @@ private:
     std::vector<Id> inputs;
     std::vector<Id> outputs;
     std::vector<Id> interfaces;
+    Id clip_dist_in;
+    Id clip_dist_out;
 };
 
 std::vector<u32> EmitAuxilaryTessShader(AuxShaderType type, const HwFragmentRuntimeInfo& fs_info) {
