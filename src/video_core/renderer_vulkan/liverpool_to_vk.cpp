@@ -827,9 +827,9 @@ vk::Format DepthFormat(DepthBuffer::ZFormat z_format, DepthBuffer::StencilFormat
     return format->vk_format;
 }
 
-vk::ClearValue ColorBufferClearValue(const AmdGpu::ColorBuffer& color_buffer) {
-    const auto comp_swizzle = color_buffer.Swizzle();
+vk::ClearValue ColorBufferClearValue(const AmdGpu::ColorBuffer& color_buffer) {    
     const auto format = AmdGpu::DataFormat(color_buffer.info.format);
+    const auto comp_swizzle = AmdGpu::RemapSwizzle(format, AmdGpu::IdentityMapping);
     const auto number_type = color_buffer.GetFixedNumberFormat();
 
     const auto& c0 = color_buffer.clear_word0;
