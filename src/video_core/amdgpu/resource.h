@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstring>
 #include "common/alignment.h"
 #include "common/assert.h"
@@ -12,6 +13,44 @@
 
 namespace AmdGpu {
 
+    enum class BufferSwizzleElementSize : u32 {
+    Size2 = 0,
+    Size4 = 1,
+    Size8 = 2,
+    Size16 = 3,
+};
+enum class BufferSwizzleStride : u32 {
+    Stride8 = 0,
+    Stride16 = 1,
+    Stride32 = 2,
+    Stride64 = 3,
+};
+constexpr u32 GetSwizzleElementSizeBytes(BufferSwizzleElementSize size) {
+    switch (size) {
+    case BufferSwizzleElementSize::Size2:
+        return 2;
+    case BufferSwizzleElementSize::Size4:
+        return 4;
+    case BufferSwizzleElementSize::Size8:
+        return 8;
+    case BufferSwizzleElementSize::Size16:
+        return 16;
+    }
+    return 0;
+}
+constexpr u32 GetSwizzleStrideElements(BufferSwizzleStride stride) {
+    switch (stride) {
+    case BufferSwizzleStride::Stride8:
+        return 8;
+    case BufferSwizzleStride::Stride16:
+        return 16;
+    case BufferSwizzleStride::Stride32:
+        return 32;
+    case BufferSwizzleStride::Stride64:
+        return 64;
+    }
+    return 0;
+}
 // Table 8.5 Buffer Resource Descriptor [Sea Islands Series Instruction Set Architecture]
 struct Buffer {
     u64 base_address : 40;
@@ -48,6 +87,62 @@ struct Buffer {
 
     bool Valid() const {
         return type == 0u;
+    }
+
+     bool IsSwizzled() const {
+        return swizzle_enable != 0;
+    }
+    BufferSwizzleElementSize GetSwizzleElementSize() const {
+        return static_cast<BufferSwizzleElementSize>(element_size);
+    }
+    BufferSwizzleStride GetSwizzleStride() const {
+        return static_cast<BufferSwizzleStride>(index_stride);
+    }
+    // Converts linear (AoS) buffer data to the swizzled (SoA) layout this buffer
+    // describes. elementStride is the size of one full buffer element in bytes.
+    void SwizzleData(u8* out_swizzled, const u8* in_linear, u32 num_elements,
+                     u32 element_stride) const {
+        if (!IsSwizzled()) {
+            std::memcpy(out_swizzled, in_linear, num_elements * element_stride);
+            return;
+        }
+        const u32 chunk = GetSwizzleElementSizeBytes(GetSwizzleElementSize());
+        const u32 stride = GetSwizzleStrideElements(GetSwizzleStride());
+        const u32 num_chunks = element_stride / chunk;
+        for (u32 block = 0; block * stride < num_elements; block++) {
+            const u32 block_start = block * stride;
+            const u32 block_count = std::min(stride, num_elements - block_start);
+            for (u32 c = 0; c < num_chunks; c++) {
+                for (u32 e = 0; e < block_count; e++) {
+                    std::memcpy(out_swizzled + block * stride * element_stride +
+                                    c * stride * chunk + e * chunk,
+                                in_linear + (block_start + e) * element_stride + c * chunk, chunk);
+                }
+            }
+        }
+    }
+    // Converts swizzled (SoA) buffer data back to the linear (AoS) layout.
+    void DeswizzleData(u8* out_linear, const u8* in_swizzled, u32 num_elements,
+                       u32 element_stride) const {
+        if (!IsSwizzled()) {
+            std::memcpy(out_linear, in_swizzled, num_elements * element_stride);
+            return;
+        }
+        const u32 chunk = GetSwizzleElementSizeBytes(GetSwizzleElementSize());
+        const u32 stride = GetSwizzleStrideElements(GetSwizzleStride());
+        const u32 num_chunks = element_stride / chunk;
+        for (u32 block = 0; block * stride < num_elements; block++) {
+            const u32 block_start = block * stride;
+            const u32 block_count = std::min(stride, num_elements - block_start);
+            for (u32 c = 0; c < num_chunks; c++) {
+                for (u32 e = 0; e < block_count; e++) {
+                    std::memcpy(out_linear + (block_start + e) * element_stride + c * chunk,
+                                in_swizzled + block * stride * element_stride + c * stride * chunk +
+                                    e * chunk,
+                                chunk);
+                }
+            }
+        }
     }
 
     operator bool() const noexcept {

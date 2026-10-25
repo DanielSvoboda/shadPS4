@@ -79,6 +79,11 @@ bool Rasterizer::FilterDraw() {
         ScopedMarkerInsert("PrimitiveTypeNone");
         return false;
     }
+    if (regs.color_control.mode == AmdGpu::ColorControl::OperationMode::DccDecompress) {
+        LOG_TRACE(Render_Vulkan, "DccDecompress");
+        UNREACHABLE_MSG("DccDecompress {}", u32(regs.color_control.mode));
+        return false;
+    }
 
     const bool cb_disabled =
         regs.color_control.mode == AmdGpu::ColorControl::OperationMode::Disable;
@@ -814,6 +819,15 @@ void Rasterizer::BindBuffers(const Shader::Info& stage, Shader::Backend::Binding
             if (vsharp.base_address == 0 || vsharp.GetSize() == 0) {
                 buffer_infos.emplace_back(VK_NULL_HANDLE, 0, VK_WHOLE_SIZE);
             } else {
+                if (vsharp.IsSwizzled()) {
+                    LOG_WARNING(Render_Vulkan,
+                                "Swizzled SSBO at {:#x} (element_size={}, stride={}) treated as "
+                                "linear; data is correct as long as GpuAddress swizzle "
+                                "functions are no-ops",
+                                vsharp.base_address,
+                                GetSwizzleElementSizeBytes(vsharp.GetSwizzleElementSize()),
+                                GetSwizzleStrideElements(vsharp.GetSwizzleStride()));
+                }
                 const u64 size = memory->ClampRangeSize(vsharp.base_address, vsharp.GetSize());
                 if (size != vsharp.GetSize()) {
                     LOG_ERROR(Render, "Clamped size from {} to {} for stage {:#x}",

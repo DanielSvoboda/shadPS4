@@ -75,7 +75,8 @@ ImageInfo::ImageInfo(const AmdGpu::ColorBuffer& buffer, AmdGpu::CbDbExtent hint)
     pitch = buffer.Pitch();
     resources.layers = buffer.NumSlices();
     meta_info.cmask_addr = buffer.info.fast_clear ? buffer.CmaskAddress() : 0;
-    meta_info.fmask_addr = buffer.info.compression ? buffer.FmaskAddress() : 0;
+    meta_info.fmask_addr =
+        (buffer.info.compression || buffer.NumSamples() > 1) ? buffer.FmaskAddress() : 0;
 
     guest_address = buffer.Address();
     if (props.is_tiled) {

@@ -12,6 +12,16 @@ static constexpr u32 NUM_COLOR_BUFFERS = 8;
 
 using BlendConstants = std::array<float, 4>;
 
+enum class CmaskTileMode : u32 {
+    Tiled = 0,
+    Linear = 1,
+    TextureCompatible = 2,
+};
+enum class FmaskCompressionMode : u32 {
+    Enabled = 0,
+    Uncompressed = 1,
+    OneFragmentOnly = 2,
+};
 struct BlendControl {
     enum class BlendFactor : u32 {
         Zero = 0,
@@ -65,6 +75,7 @@ struct ColorControl {
         Resolve = 3u,
         Err = 4u,
         FmaskDecompress = 5u,
+        DccDecompress = 6u,
     };
     enum class LogicOp : u32 {
         Clear = 0x00,
@@ -218,6 +229,14 @@ struct ColorBuffer {
 
     VAddr FmaskAddress() const {
         return VAddr(fmask_base_address) << 8;
+    }
+
+    CmaskTileMode GetCmaskTileMode() const {
+        return static_cast<CmaskTileMode>(info.cmask_addr_type);
+    }
+    FmaskCompressionMode GetFmaskCompressionMode() const {
+        return static_cast<FmaskCompressionMode>((info.fmask_compress_1frag_only << 1) |
+                                                 info.fmask_compression_disable_ci);
     }
 
     u32 NumSamples() const {
