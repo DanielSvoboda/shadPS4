@@ -83,6 +83,10 @@ public:
     void Finish();
     void OnSubmit();
     void OnFence();
+    void OnGuestFlip() {
+        texture_cache.OnGuestFlip();
+    }
+
 
     PipelineCache& GetPipelineCache() {
         return pipeline_cache;
