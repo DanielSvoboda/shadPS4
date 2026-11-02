@@ -174,6 +174,12 @@ private:
     std::vector<BoundBuffer> bound_buffers;
     std::vector<VideoCore::ImageId> bound_images;
 
+    struct PendingGpuImageInvalidation {
+        VAddr address;
+        u64 size;
+    };
+    std::vector<PendingGpuImageInvalidation> pending_gpu_image_invalidations;
+
     u32 set_write_index{};
     Pipeline::DescriptorWrites set_writes;
     Shader::PushData push_data;
